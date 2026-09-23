@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+      - ./multi_pollutant_stacking_pipeline.pkl:/data/model.pkl:ro
+    environment:
+      - PREDICTIONS_PARQUET=/app/fixtures/predictions.parquet
+      - STATIONS_PARQUET=/app/fixtures/stations.parquet
+      - VALIDATION_PARQUET=/app/fixtures/validation.parquet
+      - HOTSPOTS_GEOJSON=/app/fixtures/hotspots.geojson
+      - EXTRA_CORS_ORIGINS=${EXTRA_CORS_ORIGINS:-}
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    command: npm run dev -- --host
+    depends_on:
+      api:
+        condition: service_healthy

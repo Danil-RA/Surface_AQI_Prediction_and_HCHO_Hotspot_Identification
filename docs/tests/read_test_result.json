@@ -1,0 +1,13 @@
+{
+  "dataset_id": "USGS/SRTMGL1_003",
+  "band": "elevation",
+  "units": "meters",
+  "latitude": 8.523,
+  "longitude": 76.941,
+  "start_date": "N/A (Static dataset)",
+  "end_date": "N/A (Static dataset)",
+  "spatial_method": "reduceRegion (first value at point, scale=30m)",
+  "extracted_value": 39,
+  "error": null,
+  "quality_filtering": "None applied for test"
+}

@@ -1,0 +1,73 @@
+{
+  "location": {
+    "latitude": 8.523,
+    "longitude": 76.941
+  },
+  "date": "2026-03-15",
+  "features": {
+    "Latitude": 8.523,
+    "Longitude": 76.941,
+    "Month": 3,
+    "DayOfWeek": 6,
+    "DayOfYear": 74,
+    "VWS (m/s)": "VWS_UNRESOLVED"
+  },
+  "feature_order": [
+    "AOD",
+    "NO2",
+    "SO2",
+    "CO",
+    "O3",
+    "HCHO",
+    "AT (\u00b0C)",
+    "RH (%)",
+    "WS (m/s)",
+    "WD (deg)",
+    "TOT-RF (mm)",
+    "SR (W/mt2)",
+    "BP (mmHg)",
+    "VWS (m/s)",
+    "Latitude",
+    "Longitude",
+    "Month",
+    "DayOfWeek",
+    "DayOfYear",
+    "AOD_RH_ratio",
+    "U_Wind",
+    "V_Wind",
+    "Temp_Pressure_Ratio"
+  ],
+  "metadata": {
+    "sources": {},
+    "units": {},
+    "temporal_aggregation": {},
+    "spatial_method": {},
+    "quality_flags": {},
+    "assumptions": [
+      "Google Earth Engine authentication failed: Please authorize access to your Earth Engine account by running\n\nearthengine authenticate\n\nin your command line, or ee.Authenticate() in Python, and then retry.",
+      "All external datasets are unavailable due to lack of API authentication.",
+      "VWS extraction halted: Google Earth Engine 'ECMWF/ERA5/DAILY' does not provide vertical velocity at the surface. Extracting 'Omega' (Pa/s) from pressure levels requires unjustifiable assumptions about the original training altitude level and density conversions."
+    ]
+  },
+  "missing_features": [
+    "AOD",
+    "NO2",
+    "SO2",
+    "CO",
+    "O3",
+    "HCHO",
+    "AT (\u00b0C)",
+    "RH (%)",
+    "WS (m/s)",
+    "WD (deg)",
+    "TOT-RF (mm)",
+    "SR (W/mt2)",
+    "BP (mmHg)",
+    "VWS (m/s)",
+    "AOD_RH_ratio",
+    "U_Wind",
+    "V_Wind",
+    "Temp_Pressure_Ratio"
+  ],
+  "status": "FAILED"
+}
