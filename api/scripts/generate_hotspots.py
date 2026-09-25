@@ -1,0 +1,352 @@
+import os
+import json
+import uuid
+import datetime
+import math
+import argparse
+import ee
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Polygon
+import libpysal
+import esda
+
+def init_gee():
+    if not ee.data.is_initialized():
+        ee.Initialize(project="mystic-sun-502006-p5")
+
+SEASON_MONTHS = {
+    "winter": (1, 2),
+    "premonsoon": (3, 5),
+    "monsoon": (6, 9),
+    "postmonsoon": (10, 12)
+}
+
+def get_season_dates(season, year):
+    start_month, end_month = SEASON_MONTHS[season]
+    start_date = datetime.date(year, start_month, 1)
+    if end_month in (1, 3, 5, 7, 8, 10, 12):
+        end_day = 31
+    elif end_month in (4, 6, 9, 11):
+        end_day = 30
+    else:
+        end_day = 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28
+    end_date = datetime.date(year, end_month, end_day)
+    return start_date.strftime("%Y-%m-%d"), (end_date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+
+def generate_hotspots(season, year, lat_min=8.0, lat_max=36.0, lon_min=68.0, lon_max=96.0, step_deg=0.25):
+    init_gee()
+    start_str, end_str = get_season_dates(season, year)
+    print(f"Generating hotspots for {season} {year} ({start_str} to {end_str})")
+    
+    lats = np.arange(lat_min, lat_max, step_deg)
+    lons = np.arange(lon_min, lon_max, step_deg)
+    
+    points_data = [{"lon": float(lon), "lat": float(lat)} for lat in lats for lon in lons]
+    
+    def chunked_iterable(iterable, size):
+        for i in range(0, len(iterable), size):
+            yield iterable[i:i + size]
+    
+    hcho_coll = ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_HCHO").select("tropospheric_HCHO_column_number_density").filterDate(start_str, end_str)
+    hcho_img = hcho_coll.mean().rename('hcho')
+    
+    all_results = []
+    
+    # We only need HCHO for Gi*
+    for chunk in chunked_iterable(points_data, 2000):
+        features = [ee.Feature(ee.Geometry.Point([p["lon"], p["lat"]]), {"lon": p["lon"], "lat": p["lat"]}) for p in chunk]
+        fc = ee.FeatureCollection(features)
+        
+        sampled = hcho_img.reduceRegions(collection=fc, reducer=ee.Reducer.mean(), scale=11132)
+        
+        try:
+            results = sampled.getInfo()["features"]
+            for r in results:
+                props = r["properties"]
+                all_results.append({
+                    "lon": props.get("lon"),
+                    "lat": props.get("lat"),
+                    "hcho": props.get("mean")
+                })
+        except Exception as e:
+            print(f"Error fetching chunk: {e}")
+            
+    res_df = pd.DataFrame(all_results)
+    res_df = res_df.dropna(subset=['hcho'])
+    if len(res_df) == 0:
+        return None
+        
+    gdf = gpd.GeoDataFrame(res_df, geometry=gpd.points_from_xy(res_df.lon, res_df.lat), crs="EPSG:4326")
+    
+    # Getis-Ord Gi*
+    try:
+        wq = libpysal.weights.DistanceBand.from_dataframe(gdf, threshold=step_deg*1.5, binary=True, silence_warnings=True)
+        gi = esda.getisord.G_Local(gdf['hcho'].values, wq, star=True)
+        gdf['gi_star'] = gi.Zs
+        gdf['p_value'] = gi.p_sim
+    except:
+        from scipy.spatial import distance_matrix
+        import scipy.stats
+        coords = np.column_stack((gdf.geometry.x, gdf.geometry.y))
+        dist_mat = distance_matrix(coords, coords)
+        w = (dist_mat <= step_deg * 1.5).astype(float)
+        x = gdf['hcho'].values
+        n = len(x)
+        x_bar = np.mean(x)
+        S = np.sqrt(np.sum(x**2)/n - x_bar**2)
+        z_scores = []
+        p_values = []
+        for i in range(n):
+            wi = w[i, :]
+            sum_wi = np.sum(wi)
+            sum_wi2 = np.sum(wi**2)
+            num = np.sum(wi * x) - x_bar * sum_wi
+            den = S * np.sqrt((n * sum_wi2 - sum_wi**2) / (n - 1)) if n > 1 else 1e-9
+            z = num / (den + 1e-9)
+            p = 2 * (1 - scipy.stats.norm.cdf(abs(z)))
+            z_scores.append(z)
+            p_values.append(p)
+        gdf['gi_star'] = z_scores
+        gdf['p_value'] = p_values
+    
+    hotspots = gdf[(gdf['gi_star'] > 1.96) & (gdf['p_value'] < 0.05)].copy()
+    if len(hotspots) == 0:
+        return None
+        
+    half_step = step_deg / 2.0
+    def make_square(row):
+        return Polygon([
+            (row.lon - half_step, row.lat - half_step),
+            (row.lon + half_step, row.lat - half_step),
+            (row.lon + half_step, row.lat + half_step),
+            (row.lon - half_step, row.lat + half_step)
+        ])
+    hotspots['geometry'] = hotspots.apply(make_square, axis=1)
+    
+    dissolved = hotspots.dissolve().explode(index_parts=False).reset_index(drop=True)
+    dissolved['cluster_id'] = [str(uuid.uuid4()) for _ in range(len(dissolved))]
+    
+    hotspots = gpd.sjoin(hotspots, dissolved[['cluster_id', 'geometry']], how='inner', predicate='intersects')
+    
+    print("Aggregating regions and computing temporal association with daily matching...")
+    
+    features = []
+    
+    for cluster_id, group in hotspots.groupby('cluster_id'):
+        cluster_geom_shapely = dissolved[dissolved['cluster_id'] == cluster_id].iloc[0]['geometry']
+        
+        # Original simple stats
+        mean_hcho_old = float(group['hcho'].mean())
+        mean_gi = float(group['gi_star'].mean())
+        min_p = float(group['p_value'].min())
+        
+        # Convert shapely geometry to EE geometry
+        coords = [list(cluster_geom_shapely.exterior.coords)] if cluster_geom_shapely.geom_type == 'Polygon' else [[list(p.exterior.coords) for p in cluster_geom_shapely.geoms][0]]
+        ee_geom = ee.Geometry.Polygon(coords)
+        
+        # Temporal analysis
+        start = ee.Date(start_str)
+        end = ee.Date(end_str)
+        days = end.difference(start, 'days')
+        date_list = ee.List.sequence(0, days.subtract(1))
+        
+        def process_day(d):
+            d_start = start.advance(d, 'day')
+            d_end = d_start.advance(1, 'day')
+            
+            # HCHO
+            hcho_day = ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_HCHO") \
+                .filterDate(d_start, d_end) \
+                .select("tropospheric_HCHO_column_number_density") \
+                .mean()
+            hcho_val = hcho_day.reduceRegion(ee.Reducer.mean(), ee_geom, 11132).get("tropospheric_HCHO_column_number_density")
+            
+            # Fire
+            fire_day = ee.ImageCollection("MODIS/061/MOD14A1") \
+                .filterDate(d_start, d_end) \
+                .select("FireMask") \
+                .max()
+            # Active fire >= 7
+            fire_mask = fire_day.gte(7).selfMask()
+            # Sum the number of 1km active fire pixels within the cell(s)
+            fire_val = fire_mask.reduceRegion(ee.Reducer.sum(), ee_geom, 1000).get("FireMask")
+            
+            # ERA5
+            era5_day = ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") \
+                .filterDate(d_start, d_end) \
+                .first()
+            # fallback if missing
+            era5_safe = ee.Algorithms.If(
+                era5_day,
+                era5_day,
+                ee.Image.constant([0, 0, 0, 0, 0]).rename(['temperature_2m', 'dewpoint_temperature_2m', 'u_component_of_wind_10m', 'v_component_of_wind_10m', 'total_precipitation_sum'])
+            )
+            era5_img = ee.Image(era5_safe)
+            
+            temp = era5_img.select('temperature_2m')
+            dew = era5_img.select('dewpoint_temperature_2m')
+            u = era5_img.select('u_component_of_wind_10m')
+            v = era5_img.select('v_component_of_wind_10m')
+            precip = era5_img.select('total_precipitation_sum')
+            
+            # approx RH
+            rh = ee.Image.constant(100).subtract(temp.subtract(dew).multiply(5))
+            # wind speed
+            ws = u.pow(2).add(v.pow(2)).sqrt()
+            
+            met_vals = ee.Image.cat([temp, rh.rename('rh'), ws.rename('ws'), u, v, precip]).reduceRegion(ee.Reducer.mean(), ee_geom, 11132)
+            
+            # Handle nulls
+            return ee.Feature(None, {
+                'date': d_start.format('YYYY-MM-DD'),
+                'hcho': ee.Algorithms.If(hcho_val, hcho_val, -9999),
+                'fire_count': ee.Algorithms.If(fire_val, fire_val, 0),
+                'temp': ee.Algorithms.If(met_vals.get('temperature_2m'), met_vals.get('temperature_2m'), -9999),
+                'rh': ee.Algorithms.If(met_vals.get('rh'), met_vals.get('rh'), -9999),
+                'ws': ee.Algorithms.If(met_vals.get('ws'), met_vals.get('ws'), -9999),
+                'u': ee.Algorithms.If(met_vals.get('u_component_of_wind_10m'), met_vals.get('u_component_of_wind_10m'), -9999),
+                'v': ee.Algorithms.If(met_vals.get('v_component_of_wind_10m'), met_vals.get('v_component_of_wind_10m'), -9999),
+                'precip': ee.Algorithms.If(met_vals.get('total_precipitation_sum'), met_vals.get('total_precipitation_sum'), 0)
+            })
+            
+        fc = ee.FeatureCollection(date_list.map(process_day))
+        daily_res = fc.getInfo()['features']
+        
+        # Calculate stats
+        valid_hcho_days = []
+        fire_active_days = 0
+        fire_count_total = 0
+        fire_associated_dates = 0
+        
+        temp_list = []
+        rh_list = []
+        ws_list = []
+        u_list = []
+        v_list = []
+        precip_list = []
+        
+        for r in daily_res:
+            p = r['properties']
+            
+            # Met
+            if p['temp'] != -9999 and p['temp'] > 0:
+                temp_list.append(p['temp'])
+                rh_list.append(p['rh'])
+                ws_list.append(p['ws'])
+                u_list.append(p['u'])
+                v_list.append(p['v'])
+                precip_list.append(p['precip'])
+                
+            has_hcho = p['hcho'] != -9999
+            fc_val = p['fire_count']
+            has_fire = fc_val > 0
+            
+            fire_count_total += fc_val
+            if has_fire:
+                fire_active_days += 1
+            if has_hcho:
+                valid_hcho_days.append(p['hcho'])
+                if has_fire:
+                    fire_associated_dates += 1
+                    
+        hcho_n = len(valid_hcho_days)
+        fire_associated_date_fraction = (fire_associated_dates / hcho_n) if hcho_n > 0 else 0
+        
+        mean_temp = sum(temp_list)/len(temp_list) if temp_list else 0
+        mean_rh = sum(rh_list)/len(rh_list) if rh_list else 0
+        mean_ws = sum(ws_list)/len(ws_list) if ws_list else 0
+        mean_u = sum(u_list)/len(u_list) if u_list else 0
+        mean_v = sum(v_list)/len(v_list) if v_list else 0
+        mean_precip = sum(precip_list)/len(precip_list) if precip_list else 0
+        
+        # Prevailing wind direction (0-360)
+        # Math.atan2(v, u) or (u, v)? Standard met: direction FROM which it blows. 
+        # For simplicity, direction vector: atan2(u, v). If we want meteorological direction:
+        # 180 + atan2(u, v) * 180 / pi
+        wind_dir = (180 + math.atan2(mean_u, mean_v) * 180 / math.pi) % 360 if (mean_u!=0 or mean_v!=0) else 0
+        
+        # Fire Association Classification Rule:
+        # pyrogenic_associated: valid HCHO days also have fire activity > 10% of time, OR fire_count_total > 5
+        if fire_associated_date_fraction > 0.1 or fire_count_total > 5:
+            driver = "pyrogenic_associated"
+        elif hcho_n > 0 and fire_count_total == 0:
+            driver = "non_fire_associated"
+        else:
+            driver = "undetermined"
+            
+        # Convert temperature from Kelvin to Celsius
+        if mean_temp > 200:
+            mean_temp -= 273.15
+            
+        area_km2 = (cluster_geom_shapely.area / (step_deg*step_deg)) * (step_deg*111.32)**2
+            
+        feat = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": coords
+            },
+            "properties": {
+                "cluster_id": cluster_id,
+                "gi_star": mean_gi,
+                "p_value": min_p,
+                "mean_hcho": mean_hcho_old,
+                "fire_count_mean": fire_count_total / len(daily_res),
+                "fire_count_total": fire_count_total,
+                "fire_active_days": fire_active_days,
+                "fire_associated_date_fraction": fire_associated_date_fraction,
+                "mean_temperature": mean_temp,
+                "mean_relative_humidity": mean_rh,
+                "mean_wind_speed": mean_ws,
+                "prevailing_wind_direction": wind_dir,
+                "mean_precipitation": mean_precip,
+                "observation_count": hcho_n,
+                "area_km2": area_km2,
+                "dominant_driver": driver,
+                "season": season,
+                "year": year
+            }
+        }
+        features.append(feat)
+        
+    fc = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+    
+    return fc
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--season", required=True, choices=["winter", "premonsoon", "monsoon", "postmonsoon"])
+    parser.add_argument("--year", required=True, type=int)
+    parser.add_argument("--test", action="store_true", help="Run small test region")
+    args = parser.parse_args()
+    
+    if args.test:
+        lat_min, lat_max = 28.0, 30.0
+        lon_min, lon_max = 76.0, 78.0
+        step = 0.25
+    else:
+        lat_min, lat_max = 8.0, 36.0
+        lon_min, lon_max = 68.0, 96.0
+        step = 0.25
+        
+    fc = generate_hotspots(args.season, args.year, lat_min, lat_max, lon_min, lon_max, step)
+    
+    out_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "hotspots")
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+        
+    out_file = os.path.join(out_dir, f"hotspots_{args.season}_{args.year}.geojson")
+    
+    if fc is None:
+        fc = {"type": "FeatureCollection", "features": []}
+        
+    with open(out_file, "w") as f:
+        json.dump(fc, f)
+        
+    print(f"Wrote {out_file} with {len(fc['features'])} hotspots.")
+
