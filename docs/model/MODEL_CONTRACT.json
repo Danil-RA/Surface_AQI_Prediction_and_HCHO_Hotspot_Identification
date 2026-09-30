@@ -1,0 +1,27 @@
+{
+  "features": [
+    {"index": 1, "name": "AOD", "unit": "unitless", "role": "satellite_aerosol", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 2, "name": "NO2", "unit": "mol/m2", "role": "satellite_gas", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 3, "name": "SO2", "unit": "mol/m2", "role": "satellite_gas", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 4, "name": "CO", "unit": "mol/m2", "role": "satellite_gas", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 5, "name": "O3", "unit": "mol/m2", "role": "satellite_gas", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 6, "name": "HCHO", "unit": "mol/m2", "role": "satellite_gas", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 7, "name": "AT (\u00b0C)", "unit": "\u00b0C", "role": "meteorology", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 8, "name": "RH (%)", "unit": "%", "role": "meteorology", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 9, "name": "WS (m/s)", "unit": "m/s", "role": "meteorology", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 10, "name": "WD (deg)", "unit": "deg", "role": "meteorology", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 11, "name": "TOT-RF (mm)", "unit": "mm", "role": "meteorology", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 12, "name": "SR (W/mt2)", "unit": "W/m2", "role": "meteorology", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 13, "name": "BP (mmHg)", "unit": "mmHg", "role": "meteorology", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 14, "name": "VWS (m/s)", "unit": "m/s", "role": "meteorology", "source_certainty": "SOURCE_UNKNOWN"},
+    {"index": 15, "name": "Latitude", "unit": "decimal_degrees", "role": "spatial", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 16, "name": "Longitude", "unit": "decimal_degrees", "role": "spatial", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 17, "name": "Month", "unit": "month", "role": "temporal", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 18, "name": "DayOfWeek", "unit": "day_of_week", "role": "temporal", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 19, "name": "DayOfYear", "unit": "day_of_year", "role": "temporal", "source_certainty": "KNOWN_SOURCE"},
+    {"index": 20, "name": "AOD_RH_ratio", "unit": "unitless", "role": "engineered", "source_certainty": "LIKELY_SOURCE"},
+    {"index": 21, "name": "U_Wind", "unit": "m/s", "role": "engineered", "source_certainty": "SOURCE_UNKNOWN"},
+    {"index": 22, "name": "V_Wind", "unit": "m/s", "role": "engineered", "source_certainty": "SOURCE_UNKNOWN"},
+    {"index": 23, "name": "Temp_Pressure_Ratio", "unit": "\u00b0C/mmHg", "role": "engineered", "source_certainty": "LIKELY_SOURCE"}
+  ]
+}

@@ -1,0 +1,52 @@
+# Python environments
+.venv/
+venv/
+env/
+api/.venv/
+tmp_venv/
+retrain_env/
+hotspot_venv/
+lightgbm_compat_test/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+nb_out.txt
+
+# Node
+web/node_modules/
+web/dist/
+web/build/
+.npm/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Local/generated logs
+*.log
+
+# Temporary/model test artifacts
+multi_pollutant_stacking_pipeline_ORIGINAL_BACKUP.pkl
+multi_pollutant_stacking_pipeline_RETRAINED_TEST.pkl
+new_multi_pollutant_stacking_pipeline.pkl
+
+# Synthetic fixture artifacts that are not production data
+api/fixtures/predictions.parquet
+api/fixtures/hotspots.geojson
+
+# Generated data artifacts
+data/predictions.parquet
+data/validation.parquet
+data/stations.parquet
+data/hotspots.geojson
+data/hotspots/
+
+# Misc
+.DS_Store
+Thumbs.db

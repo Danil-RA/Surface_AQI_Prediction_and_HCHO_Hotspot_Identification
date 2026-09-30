@@ -1,0 +1,395 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              85.8042793253216,
+              10.48076168624214
+            ],
+            [
+              86.50982598770443,
+              10.48076168624214
+            ],
+            [
+              86.50982598770443,
+              11.18630834862497
+            ],
+            [
+              85.8042793253216,
+              11.18630834862497
+            ],
+            [
+              85.8042793253216,
+              10.48076168624214
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_01",
+        "gi_star": 3.322,
+        "p_value": 0.017,
+        "mean_hcho": 0.000251,
+        "fire_count_mean": 7.6,
+        "dominant_driver": "pyrogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              75.67485740455764,
+              23.861975059082276
+            ],
+            [
+              76.06004393759231,
+              23.861975059082276
+            ],
+            [
+              76.06004393759231,
+              24.247161592116953
+            ],
+            [
+              75.67485740455764,
+              24.247161592116953
+            ],
+            [
+              75.67485740455764,
+              23.861975059082276
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_02",
+        "gi_star": 5.179,
+        "p_value": 0.0252,
+        "mean_hcho": 0.000251,
+        "fire_count_mean": 24.0,
+        "dominant_driver": "pyrogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              89.5337551524101,
+              25.218243880876578
+            ],
+            [
+              90.32696627629252,
+              25.218243880876578
+            ],
+            [
+              90.32696627629252,
+              26.01145500475902
+            ],
+            [
+              89.5337551524101,
+              26.01145500475902
+            ],
+            [
+              89.5337551524101,
+              25.218243880876578
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_03",
+        "gi_star": 6.199,
+        "p_value": 0.0483,
+        "mean_hcho": 0.000132,
+        "fire_count_mean": 36.7,
+        "dominant_driver": "biogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              92.91982697937405,
+              31.596124917078885
+            ],
+            [
+              93.66286015503485,
+              31.596124917078885
+            ],
+            [
+              93.66286015503485,
+              32.33915809273969
+            ],
+            [
+              92.91982697937405,
+              32.33915809273969
+            ],
+            [
+              92.91982697937405,
+              31.596124917078885
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_04",
+        "gi_star": 6.469,
+        "p_value": 0.035,
+        "mean_hcho": 7.5e-05,
+        "fire_count_mean": 24.9,
+        "dominant_driver": "biogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              87.47402207092449,
+              29.29185070670338
+            ],
+            [
+              88.27795403384786,
+              29.29185070670338
+            ],
+            [
+              88.27795403384786,
+              30.095782669626736
+            ],
+            [
+              87.47402207092449,
+              30.095782669626736
+            ],
+            [
+              87.47402207092449,
+              29.29185070670338
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_05",
+        "gi_star": 1.978,
+        "p_value": 0.0166,
+        "mean_hcho": 0.000105,
+        "fire_count_mean": 49.8,
+        "dominant_driver": "pyrogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              86.18561973474642,
+              17.982281638911346
+            ],
+            [
+              86.95474421915101,
+              17.982281638911346
+            ],
+            [
+              86.95474421915101,
+              18.751406123315938
+            ],
+            [
+              86.18561973474642,
+              18.751406123315938
+            ],
+            [
+              86.18561973474642,
+              17.982281638911346
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_06",
+        "gi_star": 7.48,
+        "p_value": 0.0241,
+        "mean_hcho": 0.000122,
+        "fire_count_mean": 21.2,
+        "dominant_driver": "biogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              71.38796119570577,
+              21.031192930798287
+            ],
+            [
+              72.03669822555833,
+              21.031192930798287
+            ],
+            [
+              72.03669822555833,
+              21.67992996065085
+            ],
+            [
+              71.38796119570577,
+              21.67992996065085
+            ],
+            [
+              71.38796119570577,
+              21.031192930798287
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_07",
+        "gi_star": 2.736,
+        "p_value": 0.0022,
+        "mean_hcho": 6.8e-05,
+        "fire_count_mean": 31.9,
+        "dominant_driver": "undetermined",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              70.00191896286087,
+              12.497258268494429
+            ],
+            [
+              70.3084523211703,
+              12.497258268494429
+            ],
+            [
+              70.3084523211703,
+              12.803791626803863
+            ],
+            [
+              70.00191896286087,
+              12.803791626803863
+            ],
+            [
+              70.00191896286087,
+              12.497258268494429
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_08",
+        "gi_star": 2.483,
+        "p_value": 0.0169,
+        "mean_hcho": 0.000388,
+        "fire_count_mean": 33.6,
+        "dominant_driver": "biogenic",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              71.20006914871647,
+              33.116464148324596
+            ],
+            [
+              71.69640829305303,
+              33.116464148324596
+            ],
+            [
+              71.69640829305303,
+              33.61280329266114
+            ],
+            [
+              71.20006914871647,
+              33.61280329266114
+            ],
+            [
+              71.20006914871647,
+              33.116464148324596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_09",
+        "gi_star": 5.488,
+        "p_value": 0.0249,
+        "mean_hcho": 0.000131,
+        "fire_count_mean": 43.4,
+        "dominant_driver": "undetermined",
+        "season": "premonsoon"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              86.91219792951979,
+              14.380843937888603
+            ],
+            [
+              87.25950492094707,
+              14.380843937888603
+            ],
+            [
+              87.25950492094707,
+              14.72815092931587
+            ],
+            [
+              86.91219792951979,
+              14.72815092931587
+            ],
+            [
+              86.91219792951979,
+              14.380843937888603
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cluster_id": "premonsoon_10",
+        "gi_star": 2.873,
+        "p_value": 0.0291,
+        "mean_hcho": 5.4e-05,
+        "fire_count_mean": 34.8,
+        "dominant_driver": "mixed",
+        "season": "premonsoon"
+      }
+    }
+  ]
+}

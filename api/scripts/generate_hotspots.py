@@ -211,8 +211,33 @@ def generate_hotspots(season, year, lat_min=8.0, lat_max=36.0, lon_min=68.0, lon
                 'precip': ee.Algorithms.If(met_vals.get('total_precipitation_sum'), met_vals.get('total_precipitation_sum'), 0)
             })
             
-        fc = ee.FeatureCollection(date_list.map(process_day))
-        daily_res = fc.getInfo()['features']
+        import time
+        import datetime
+        start_date_obj = datetime.datetime.strptime(start_str, "%Y-%m-%d")
+        end_date_obj = datetime.datetime.strptime(end_str, "%Y-%m-%d")
+        total_days = (end_date_obj - start_date_obj).days
+        
+        daily_res = []
+        batch_size = 7
+        for batch_start in range(0, total_days, batch_size):
+            batch_end = min(batch_start + batch_size, total_days)
+            batch_date_list = ee.List.sequence(batch_start, batch_end - 1)
+            fc = ee.FeatureCollection(batch_date_list.map(process_day))
+            
+            batch_res = None
+            for attempt in range(6):
+                try:
+                    batch_res = fc.getInfo()['features']
+                    break
+                except Exception as e:
+                    if attempt == 5:
+                        raise
+                    print(f"GEE Error in batch {batch_start}-{batch_end-1}: {e}. Retrying in 15 seconds...")
+                    time.sleep(15)
+            
+            daily_res.extend(batch_res)
+            if batch_end < total_days:
+                time.sleep(1)
         
         # Calculate stats
         valid_hcho_days = []

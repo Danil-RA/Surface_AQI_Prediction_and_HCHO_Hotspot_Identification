@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * MapLibre GL canvas must fill its container.
+ * Keep this here rather than in component CSS so it applies globally.
+ */
+.maplibregl-map {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * No-coverage hatch pattern — drawn as a repeating SVG diagonal stripe.
+ * Used on the map layer for cells where coverage === 'none'.
+ * The CSS class is applied by the map layer paint expression.
+ */
+.aqi-no-coverage-hatch {
+  background-color: rgba(107, 114, 128, 0.35);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(107, 114, 128, 0.6) 0px,
+    rgba(107, 114, 128, 0.6) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+/*
+ * Tabular numerics — apply where decimal alignment matters.
+ * Uses the font-mono (JetBrains Mono) family with tabular-nums feature.
+ */
+.tabular {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect prefers-reduced-motion — override any transitions/animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible keyboard focus — consistent ring across all interactive elements */
+:focus-visible {
+  outline: 2px solid #8CA3B8;
+  outline-offset: 2px;
+}
