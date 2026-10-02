@@ -31,6 +31,8 @@ class PredictResponse(BaseModel):
     dominant_pollutant: str
     sub_indices: Dict[str, int]
     provenance: Dict[str, Any]
+    data_quality: str
+    satellite_provenance: Dict[str, Any]
 
 @router.post("/predict", response_model=PredictResponse)
 async def predict(request: PredictRequest):
@@ -40,10 +42,8 @@ async def predict(request: PredictRequest):
     
     # Step 1: Feature acquisition
     try:
-        # Phase 1: get_features handles GEE, ERA5, and VWS internally
-        features = get_features(lat, lon, date_str)
+        features, sat_provenance = get_features(lat, lon, date_str)
     except MissingDataError as e:
-        # Return 422 Unprocessable Entity for missing environmental data
         detail_obj = {
             "message": "Environmental data is unavailable for this location/date.",
             "missing_data": e.missing_data,
@@ -51,30 +51,37 @@ async def predict(request: PredictRequest):
         }
         raise HTTPException(status_code=422, detail=detail_obj)
     except Exception as e:
-        # Avoid exposing stack traces
         raise HTTPException(status_code=500, detail="Internal server error during feature acquisition")
 
     # Step 2: Model inference
     try:
-        # Phase 2: prediction service (singleton internally loaded)
         predictions = predict_pollutants(features)
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error during model inference")
+        import traceback
+        traceback.print_exc()
+        print("Features causing error:", features)
+        raise HTTPException(status_code=500, detail=f"Internal server error during model inference: {str(e)}")
 
     # Step 3: AQI calculation
     try:
-        # Phase 3: AQI wrapper connecting predictions to CPCB logic
         aqi_result = calculate_aqi_from_predictions(predictions)
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error during AQI calculation")
 
-    # As the Phase 1 feature service currently does not bubble up provenance metadata
-    # for the synthetic VWS fallback, we document it explicitly here.
     provenance = {
         "vws": {
             "source": "synthetic_fallback"
         }
     }
+    
+    # Calculate Data Quality
+    quality = "HIGH"
+    for k, v in sat_provenance.items():
+        if v.get("source") in ("ml_gapfilled", "spatiotemporal_gapfill"):
+            quality = "LIMITED"
+            break
+        elif v.get("source") == "temporal_recovery" and quality != "LIMITED":
+            quality = "MODERATE"
 
     return PredictResponse(
         location=Location(latitude=lat, longitude=lon),
@@ -83,5 +90,7 @@ async def predict(request: PredictRequest):
         aqi=AQIDetails(value=aqi_result["overall_aqi"], category=aqi_result["category"]),
         dominant_pollutant=aqi_result["dominant_pollutant"],
         sub_indices=aqi_result["sub_indices"],
-        provenance=provenance
+        provenance=provenance,
+        data_quality=quality,
+        satellite_provenance=sat_provenance
     )

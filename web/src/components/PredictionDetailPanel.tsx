@@ -182,20 +182,47 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
             </div>
 
             {/* Environmental Data Status */}
-            <div className="bg-chrome-700/20 border border-chrome-700 rounded p-3">
-              <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
-                Environmental Data: All required inputs available ✓
+            <div className={`bg-chrome-700/20 border ${data.data_quality === 'HIGH' ? 'border-emerald-700/50' : data.data_quality === 'MODERATE' ? 'border-amber-700/50' : 'border-rose-700/50'} rounded p-3 space-y-3`}>
+              <div className={`flex items-center gap-2 text-xs font-medium ${data.data_quality === 'HIGH' ? 'text-emerald-400' : data.data_quality === 'MODERATE' ? 'text-amber-400' : 'text-rose-400'}`}>
+                {data.data_quality === 'HIGH' ? 'Environmental Data: All required inputs observed ✓' :
+                 data.data_quality === 'MODERATE' ? 'Environmental Data: Temporally recovered ↻' :
+                 'Environmental Data: Spatiotemporal fallback used ⚠'}
               </div>
-            </div>
+              
+              {data.data_quality === 'LIMITED' && (
+                <div className="text-2xs text-chrome-300 leading-snug">
+                  Satellite observation unavailable; a validated spatiotemporal fallback was used.
+                  {['AOD', 'NO2'].some(k => data.satellite_provenance[k]?.source === 'spatiotemporal_gapfill') && (
+                    <div className="text-rose-300 mt-1 italic">
+                      Limited data quality: spatial reconstruction may underestimate localized pollution extremes.
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Provenance */}
-            <div className="bg-chrome-700/20 border border-chrome-700 rounded p-2.5 space-y-1">
-              <div className="text-2xs font-semibold text-chrome-300 uppercase tracking-wider">
-                Data Provenance
-              </div>
-              <div className="text-xs text-chrome-300 flex justify-between">
-                <span>VWS source:</span>
-                <span className="font-mono text-sky-400 capitalize">{data.provenance.vws.source.replace('_', ' ')}</span>
+              <div className="space-y-1.5 border-t border-chrome-700/50 pt-2">
+                {Object.entries(data.satellite_provenance).map(([key, prov]) => (
+                  <div key={key} className="flex justify-between items-center text-2xs">
+                    <span className="text-chrome-300 font-medium">{key}</span>
+                    {prov.source === 'observed' ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        ✓ Observed
+                      </span>
+                    ) : prov.source === 'temporal_recovery' ? (
+                      <span className="text-amber-400 flex items-center gap-1">
+                        ↻ Temporal recovery (from {prov.source_date})
+                      </span>
+                    ) : prov.source === 'ml_gapfilled' ? (
+                      <span className="text-rose-400 flex items-center gap-1">
+                        ⚠ ML estimate
+                      </span>
+                    ) : (
+                      <span className="text-rose-400 flex items-center gap-1">
+                        ⚠ Spatiotemporal estimate
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </>

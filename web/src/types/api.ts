@@ -146,6 +146,13 @@ export interface PredictionResponse {
       source: string
     }
   }
+  data_quality: 'HIGH' | 'MODERATE' | 'LIMITED'
+  satellite_provenance: Record<string, {
+    value: number | null
+    source: string
+    source_date?: string
+    model?: string
+  }>
 }
 
 // ---------------------------------------------------------------------------
