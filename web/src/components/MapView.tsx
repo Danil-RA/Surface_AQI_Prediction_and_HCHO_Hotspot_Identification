@@ -21,7 +21,7 @@ export const MapView: React.FC<MapViewProps> = ({
   lat,
   lon,
   zoom,
-  showGrid = true,
+  showGrid = false,
   selectedLocation,
   onMapClick,
   onStationClick,
@@ -88,6 +88,9 @@ export const MapView: React.FC<MapViewProps> = ({
         type: 'fill',
         source: 'aqi-grid',
         filter: ['!=', ['get', 'coverage'], 'none'],
+        layout: {
+          visibility: showGrid ? 'visible' : 'none',
+        },
         paint: {
           // Discrete stepped bands: Good (0-50), Satisfactory (51-100), Moderate (101-200),
           // Poor (201-300), Very Poor (301-400), Severe (401-500)
@@ -111,6 +114,9 @@ export const MapView: React.FC<MapViewProps> = ({
         type: 'fill',
         source: 'aqi-grid',
         filter: ['==', ['get', 'coverage'], 'none'],
+        layout: {
+          visibility: showGrid ? 'visible' : 'none',
+        },
         paint: {
           'fill-pattern': 'hatch-pattern',
           'fill-opacity': 0.9,

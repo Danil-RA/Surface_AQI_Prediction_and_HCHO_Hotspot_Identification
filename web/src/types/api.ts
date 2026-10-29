@@ -180,9 +180,9 @@ export interface HotspotProperties {
   year: number
 }
 
-export interface HotspotFeature extends GeoJSON.Feature<GeoJSON.Polygon, HotspotProperties> {}
+export interface HotspotFeature extends GeoJSON.Feature<GeoJSON.Geometry, HotspotProperties> {}
 
-export interface HotspotsResponse extends GeoJSON.FeatureCollection<GeoJSON.Polygon, HotspotProperties> {}
+export interface HotspotsResponse extends GeoJSON.FeatureCollection<GeoJSON.Geometry, HotspotProperties> {}
 
 // Minimal GeoJSON types (avoids adding @types/geojson as a dependency for now)
 declare namespace GeoJSON {
@@ -199,7 +199,11 @@ declare namespace GeoJSON {
     type: 'Polygon'
     coordinates: number[][][]
   }
-  type Geometry = Polygon
+  interface MultiPolygon {
+    type: 'MultiPolygon'
+    coordinates: number[][][][]
+  }
+  type Geometry = Polygon | MultiPolygon
 }
 
 // ---------------------------------------------------------------------------

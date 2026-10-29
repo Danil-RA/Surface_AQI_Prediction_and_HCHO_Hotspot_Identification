@@ -23,7 +23,7 @@ export const MapPage: React.FC = () => {
   const [zoom, setZoom] = useState<number>(4.2)
   const [date, setDate] = useState<string>(initialDate)
   const [layer, setLayer] = useState<LayerKey>(initialLayer)
-  const [showGrid, setShowGrid] = useState<boolean>(true)
+  const [showGrid, setShowGrid] = useState<boolean>(false)
 
   // Prediction detail state
   const [predictLocation, setPredictLocation] = useState<{lat: number, lon: number} | null>(null)

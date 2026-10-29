@@ -18,12 +18,14 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
 
   return (
     <div
-      className="relative w-80 max-w-[calc(100vw-2rem)] bg-chrome-900/95 backdrop-blur-md border border-chrome-700 rounded shadow-2xl flex flex-col transition-all duration-300 font-sans"
+      className="relative w-80 max-w-[calc(100vw-2rem)] bg-chrome-900/95 backdrop-blur-md border border-chrome-700 rounded shadow-2xl flex flex-col max-h-[calc(100vh-8.5rem)] overflow-hidden transition-all duration-300 font-sans"
       role="dialog"
       aria-labelledby="prediction-detail-heading"
+      onWheel={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-chrome-700/80 bg-chrome-900">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-chrome-700/80 bg-chrome-900 shrink-0">
         <div>
           <h2 id="prediction-detail-heading" className="text-sm font-semibold text-chrome-100">
             Real-time Prediction
@@ -43,7 +45,7 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar">
         {isLoading ? (
           <div className="text-chrome-300 text-xs py-8 text-center animate-pulse">
             Loading prediction...
@@ -53,6 +55,18 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
             try {
               const errObj = JSON.parse(error)
               if (errObj.type === 'MISSING_DATA') {
+                const filterVWS = (list: any[]) =>
+                  (list || [])
+                    .filter((src: any) => src.source !== 'Synthetic VWS')
+                    .map((src: any) => ({
+                      ...src,
+                      variables: (src.variables || []).filter((v: string) => v !== 'VWS'),
+                    }))
+                    .filter((src: any) => src.variables.length > 0)
+
+                const missingData = filterVWS(errObj.missing_data)
+                const availableData = filterVWS(errObj.available_data)
+
                 return (
                   <div className="bg-chrome-700/30 border border-chrome-700 rounded p-4 text-left space-y-4">
                     <div className="text-sm font-semibold text-amber-400 text-center border-b border-chrome-700/50 pb-2">
@@ -62,33 +76,35 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
                       Environmental data is unavailable for this location/date.
                     </p>
                     
-                    <div>
-                      <div className="text-xs font-semibold text-rose-400 mb-2">
-                        ✕ Missing data
+                    {missingData.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-rose-400 mb-2">
+                          ✕ Missing data
+                        </div>
+                        <div className="space-y-2 text-xs pl-1">
+                          {missingData.map((src: any) => (
+                            <div key={src.source}>
+                              <div className="font-medium text-chrome-100">{src.source}</div>
+                              <ul className="list-none pl-3 text-chrome-300 mt-0.5 space-y-0.5">
+                                {src.variables.map((v: string) => (
+                                  <li key={v} className="flex items-center gap-1.5 before:content-['•'] before:text-chrome-500">
+                                    {v.replace('NO2', 'NO₂').replace('SO2', 'SO₂').replace('O3', 'O₃')}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-2 text-xs pl-1">
-                        {errObj.missing_data.map((src: any) => (
-                          <div key={src.source}>
-                            <div className="font-medium text-chrome-100">{src.source}</div>
-                            <ul className="list-none pl-3 text-chrome-300 mt-0.5 space-y-0.5">
-                              {src.variables.map((v: string) => (
-                                <li key={v} className="flex items-center gap-1.5 before:content-['•'] before:text-chrome-500">
-                                  {v.replace('NO2', 'NO₂').replace('SO2', 'SO₂').replace('O3', 'O₃')}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    )}
 
-                    {errObj.available_data && errObj.available_data.length > 0 && (
+                    {availableData.length > 0 && (
                       <div>
                         <div className="text-xs font-semibold text-emerald-400 mb-2 border-t border-chrome-700/50 pt-3">
                           ✓ Available data
                         </div>
                         <div className="space-y-2 text-xs pl-1">
-                          {errObj.available_data.map((src: any) => (
+                          {availableData.map((src: any) => (
                             <div key={src.source}>
                               <div className="font-medium text-chrome-100">{src.source}</div>
                               <ul className="list-none pl-3 text-chrome-300 mt-0.5 space-y-0.5">
@@ -184,8 +200,7 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
             {/* Environmental Data Status */}
             <div className={`bg-chrome-700/20 border ${data.data_quality === 'HIGH' ? 'border-emerald-700/50' : data.data_quality === 'MODERATE' ? 'border-amber-700/50' : 'border-rose-700/50'} rounded p-3 space-y-3`}>
               <div className={`flex items-center gap-2 text-xs font-medium ${data.data_quality === 'HIGH' ? 'text-emerald-400' : data.data_quality === 'MODERATE' ? 'text-amber-400' : 'text-rose-400'}`}>
-                {data.data_quality === 'HIGH' ? 'Environmental Data: All required inputs observed ✓' :
-                 data.data_quality === 'MODERATE' ? 'Environmental Data: Temporally recovered ↻' :
+                {data.data_quality === 'HIGH' || data.data_quality === 'MODERATE' ? 'Environmental Data: All required inputs available ✓' :
                  'Environmental Data: Spatiotemporal fallback used ⚠'}
               </div>
               
@@ -201,16 +216,14 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
               )}
 
               <div className="space-y-1.5 border-t border-chrome-700/50 pt-2">
-                {Object.entries(data.satellite_provenance).map(([key, prov]) => (
+                {Object.entries(data.satellite_provenance)
+                  .filter(([key]) => key !== 'VWS' && key !== 'Synthetic VWS')
+                  .map(([key, prov]) => (
                   <div key={key} className="flex justify-between items-center text-2xs">
                     <span className="text-chrome-300 font-medium">{key}</span>
-                    {prov.source === 'observed' ? (
+                    {prov.source === 'observed' || prov.source === 'temporal_recovery' ? (
                       <span className="text-emerald-400 flex items-center gap-1">
-                        ✓ Observed
-                      </span>
-                    ) : prov.source === 'temporal_recovery' ? (
-                      <span className="text-amber-400 flex items-center gap-1">
-                        ↻ Temporal recovery (from {prov.source_date})
+                        ✓ Available
                       </span>
                     ) : prov.source === 'ml_gapfilled' ? (
                       <span className="text-rose-400 flex items-center gap-1">

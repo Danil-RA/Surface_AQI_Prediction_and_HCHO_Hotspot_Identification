@@ -8,7 +8,7 @@ import ee
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, mapping
 import libpysal
 import esda
 
@@ -126,6 +126,16 @@ def generate_hotspots(season, year, lat_min=8.0, lat_max=36.0, lon_min=68.0, lon
     hotspots['geometry'] = hotspots.apply(make_square, axis=1)
     
     dissolved = hotspots.dissolve().explode(index_parts=False).reset_index(drop=True)
+    
+    # Clip hotspot clusters to authoritative India boundary
+    boundary_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "boundaries", "india_boundary.geojson")
+    if os.path.exists(boundary_path):
+        india_gdf = gpd.read_file(boundary_path)
+        dissolved = gpd.clip(dissolved, india_gdf)
+        dissolved = dissolved[~dissolved.is_empty].reset_index(drop=True)
+        if len(dissolved) == 0:
+            return None
+
     dissolved['cluster_id'] = [str(uuid.uuid4()) for _ in range(len(dissolved))]
     
     hotspots = gpd.sjoin(hotspots, dissolved[['cluster_id', 'geometry']], how='inner', predicate='intersects')
@@ -143,8 +153,7 @@ def generate_hotspots(season, year, lat_min=8.0, lat_max=36.0, lon_min=68.0, lon
         min_p = float(group['p_value'].min())
         
         # Convert shapely geometry to EE geometry
-        coords = [list(cluster_geom_shapely.exterior.coords)] if cluster_geom_shapely.geom_type == 'Polygon' else [[list(p.exterior.coords) for p in cluster_geom_shapely.geoms][0]]
-        ee_geom = ee.Geometry.Polygon(coords)
+        ee_geom = ee.Geometry(mapping(cluster_geom_shapely))
         
         # Temporal analysis
         start = ee.Date(start_str)
@@ -309,10 +318,7 @@ def generate_hotspots(season, year, lat_min=8.0, lat_max=36.0, lon_min=68.0, lon
             
         feat = {
             "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": coords
-            },
+            "geometry": mapping(cluster_geom_shapely),
             "properties": {
                 "cluster_id": cluster_id,
                 "gi_star": mean_gi,
