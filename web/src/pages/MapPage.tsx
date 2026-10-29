@@ -7,6 +7,7 @@ import { Timeline } from '../components/Timeline'
 import { LayerSwitcher } from '../components/LayerSwitcher'
 import { PredictionDetailPanel } from '../components/PredictionDetailPanel'
 import { StationModal } from '../components/StationModal'
+import { LocationSearch, SelectedLocationInfo } from '../components/LocationSearch'
 import { PredictionResponse, LayerKey, StationFeature } from '../types/api'
 
 export const MapPage: React.FC = () => {
@@ -27,6 +28,7 @@ export const MapPage: React.FC = () => {
 
   // Prediction detail state
   const [predictLocation, setPredictLocation] = useState<{lat: number, lon: number} | null>(null)
+  const [focusTrigger, setFocusTrigger] = useState<{lat: number, lon: number, zoom?: number} | null>(null)
   
   const predictMutation = useMutation<PredictionResponse, Error, { latitude: number, longitude: number, date: string }>({
     mutationFn: async (payload) => {
@@ -116,6 +118,20 @@ export const MapPage: React.FC = () => {
     predictMutation.mutate({ latitude: clickLat, longitude: clickLon, date })
   }
 
+  // Handle location selection from search (place name or coordinates)
+  const handleSelectSearchLocation = (loc: SelectedLocationInfo) => {
+    setPredictLocation({ lat: loc.lat, lon: loc.lon })
+    setFocusTrigger({ lat: loc.lat, lon: loc.lon, zoom: 10 })
+  }
+
+  // Handle explicit predict request from search
+  const handleRequestPredict = (targetLat: number, targetLon: number) => {
+    if (predictMutation.isPending) return
+    setPredictLocation({ lat: targetLat, lon: targetLon })
+    setFocusTrigger({ lat: targetLat, lon: targetLon, zoom: 10 })
+    predictMutation.mutate({ latitude: targetLat, longitude: targetLon, date })
+  }
+
   return (
     <div className="relative w-full h-full overflow-hidden flex flex-col">
       {/* Full-bleed Map Canvas */}
@@ -128,6 +144,7 @@ export const MapPage: React.FC = () => {
           zoom={zoom}
           showGrid={showGrid}
           selectedLocation={predictLocation}
+          focusTrigger={focusTrigger}
           onMapClick={handleMapClick}
           onStationClick={(stn) => setSelectedStation(stn)}
           onMoveEnd={(newLat, newLon, newZoom) => {
@@ -136,6 +153,16 @@ export const MapPage: React.FC = () => {
             setZoom(newZoom)
           }}
         />
+
+        {/* Location Search Bar & Selector (Top-Left) */}
+        <div className="absolute top-4 left-14 z-panel">
+          <LocationSearch
+            onSelectLocation={handleSelectSearchLocation}
+            onRequestPredict={handleRequestPredict}
+            isPredicting={predictMutation.isPending}
+            selectedLocation={predictLocation}
+          />
+        </div>
 
         {/* Permanent Legend (Bottom-Left) */}
         <div className="absolute bottom-4 left-4 z-legend">
