@@ -29,15 +29,24 @@ export const MapPage: React.FC = () => {
   // Prediction detail state
   const [predictLocation, setPredictLocation] = useState<{lat: number, lon: number} | null>(null)
   const [focusTrigger, setFocusTrigger] = useState<{lat: number, lon: number, zoom?: number} | null>(null)
+  const [selectedSearchLabel, setSelectedSearchLabel] = useState<string | null>(null)
   
-  const predictMutation = useMutation<PredictionResponse, Error, { latitude: number, longitude: number, date: string }>({
+  const predictMutation = useMutation<
+    PredictionResponse,
+    Error,
+    { latitude: number; longitude: number; date: string; locationName?: string }
+  >({
     mutationFn: async (payload) => {
       let response: Response;
       try {
         response = await fetch('/api/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            latitude: payload.latitude,
+            longitude: payload.longitude,
+            date: payload.date,
+          })
         })
       } catch (err) {
         throw new Error('Network error: Unable to reach the prediction server.')
@@ -114,22 +123,26 @@ export const MapPage: React.FC = () => {
     // If a request is already running, avoid duplicating it
     if (predictMutation.isPending) return;
 
+    setSelectedSearchLabel(null)
     setPredictLocation({ lat: clickLat, lon: clickLon })
-    predictMutation.mutate({ latitude: clickLat, longitude: clickLon, date })
+    predictMutation.mutate({ latitude: clickLat, longitude: clickLon, date, locationName: undefined })
   }
 
   // Handle location selection from search (place name or coordinates)
   const handleSelectSearchLocation = (loc: SelectedLocationInfo) => {
+    setSelectedSearchLabel(loc.label || null)
     setPredictLocation({ lat: loc.lat, lon: loc.lon })
     setFocusTrigger({ lat: loc.lat, lon: loc.lon, zoom: 10 })
   }
 
   // Handle explicit predict request from search
-  const handleRequestPredict = (targetLat: number, targetLon: number) => {
+  const handleRequestPredict = (targetLat: number, targetLon: number, label?: string) => {
     if (predictMutation.isPending) return
+    const resolvedLabel = label || selectedSearchLabel || undefined
+    setSelectedSearchLabel(resolvedLabel || null)
     setPredictLocation({ lat: targetLat, lon: targetLon })
     setFocusTrigger({ lat: targetLat, lon: targetLon, zoom: 10 })
-    predictMutation.mutate({ latitude: targetLat, longitude: targetLon, date })
+    predictMutation.mutate({ latitude: targetLat, longitude: targetLon, date, locationName: resolvedLabel })
   }
 
   return (
@@ -184,11 +197,13 @@ export const MapPage: React.FC = () => {
           <div className="absolute top-4 right-48 z-panel">
             <PredictionDetailPanel
               data={predictMutation.data || null}
+              locationName={predictMutation.variables?.locationName || null}
               isLoading={predictMutation.isPending}
               error={predictMutation.error ? predictMutation.error.message : null}
               onClose={() => {
                 predictMutation.reset()
                 setPredictLocation(null)
+                setSelectedSearchLabel(null)
               }}
             />
           </div>

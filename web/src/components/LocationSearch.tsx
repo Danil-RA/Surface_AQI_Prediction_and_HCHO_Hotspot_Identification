@@ -8,7 +8,7 @@ export interface SelectedLocationInfo {
 
 interface LocationSearchProps {
   onSelectLocation: (loc: SelectedLocationInfo) => void
-  onRequestPredict: (lat: number, lon: number) => void
+  onRequestPredict: (lat: number, lon: number, label?: string) => void
   isPredicting?: boolean
   selectedLocation?: { lat: number; lon: number } | null
 }
@@ -196,7 +196,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
   // Trigger Prediction
   const handlePredictClick = () => {
     if (!activeTarget) return
-    onRequestPredict(activeTarget.lat, activeTarget.lon)
+    onRequestPredict(activeTarget.lat, activeTarget.lon, activeTarget.label)
   }
 
   return (

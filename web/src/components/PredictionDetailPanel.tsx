@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { PredictionResponse, AQI_COLORS } from '../types/api'
+import { generateAqiPdfReport } from '../utils/generateAqiPdfReport'
 
 interface PredictionDetailPanelProps {
   data: PredictionResponse | null
+  locationName?: string | null
   isLoading: boolean
   error: string | null
   onClose: () => void
@@ -10,10 +12,32 @@ interface PredictionDetailPanelProps {
 
 export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
   data,
+  locationName,
   isLoading,
   error,
   onClose,
 }) => {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
+
+  // Clear PDF error if data or error states change
+  useEffect(() => {
+    setPdfError(null)
+  }, [data, error])
+
+  const handleDownloadPdf = async () => {
+    if (!data) return
+    setIsGeneratingPdf(true)
+    setPdfError(null)
+    try {
+      await generateAqiPdfReport({ data, locationName })
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : 'Failed to generate PDF report.')
+    } finally {
+      setIsGeneratingPdf(false)
+    }
+  }
+
   if (!data && !isLoading && !error) return null
 
   return (
@@ -31,8 +55,15 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
             Real-time Prediction
           </h2>
           {data && (
-            <div className="tabular text-chrome-300 text-2xs font-mono">
-              {data.location.latitude.toFixed(3)}°N, {data.location.longitude.toFixed(3)}°E • {data.date}
+            <div className="text-chrome-300 text-2xs">
+              {locationName && (
+                <div className="truncate max-w-[190px] text-chrome-200 font-medium" title={locationName}>
+                  {locationName}
+                </div>
+              )}
+              <div className="tabular font-mono">
+                {data.location.latitude.toFixed(3)}°N, {data.location.longitude.toFixed(3)}°E • {data.date}
+              </div>
             </div>
           )}
         </div>
@@ -195,6 +226,39 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Download Report (PDF) Action */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="w-full py-2 px-3 bg-chrome-800 hover:bg-chrome-700 active:bg-chrome-600 disabled:opacity-60 disabled:cursor-not-allowed border border-chrome-600 hover:border-chrome-500 rounded text-xs font-medium text-chrome-100 flex items-center justify-center gap-2 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                title="Download prediction report as PDF"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-sky-400 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Generating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span>Download Report (PDF)</span>
+                  </>
+                )}
+              </button>
+              {pdfError && (
+                <div className="text-2xs text-rose-400 text-center mt-1.5 bg-rose-950/40 border border-rose-800/50 rounded py-1 px-2">
+                  {pdfError}
+                </div>
+              )}
             </div>
 
             {/* Environmental Data Status */}

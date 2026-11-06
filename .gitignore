@@ -6,6 +6,7 @@ api/.venv/
 tmp_venv/
 retrain_env/
 hotspot_venv/
+gapfill_venv/
 lightgbm_compat_test/
 
 # Python cache
