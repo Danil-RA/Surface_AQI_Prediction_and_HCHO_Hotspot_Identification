@@ -14,7 +14,11 @@ import os
 print("Starting Retraining Verification...")
 
 # 1. Dataset verification hash
-file_path = 'final_master_dataset.csv'
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+file_path = os.environ.get('DATASET_PATH', os.path.join(PROJECT_ROOT, 'final_master_dataset.csv'))
+if not os.path.exists(file_path) and os.path.exists('final_master_dataset.csv'):
+    file_path = 'final_master_dataset.csv'
+
 sha256 = hashlib.sha256()
 with open(file_path, 'rb') as f:
     sha256.update(f.read())
@@ -174,7 +178,8 @@ report = f"""# Retraining Verification Report
 - The retrained artifact is safe to consider for the next replacement step: YES
 """
 
-with open('retrain_verification_report.md', 'w') as f:
+report_path = os.path.join(PROJECT_ROOT, "docs", "model", "RETRAIN_VERIFICATION_REPORT.md")
+with open(report_path, 'w', encoding='utf-8') as f:
     f.write(report)
 
-print("Retraining Verification Complete. Report saved to retrain_verification_report.md")
+print(f"Retraining Verification Complete. Report saved to {report_path}")

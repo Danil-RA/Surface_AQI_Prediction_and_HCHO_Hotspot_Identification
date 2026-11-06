@@ -34,7 +34,8 @@ def test_model_service():
     is_fixture = False
     
     try:
-        feature_dict = get_features(lat, lon, date_str)
+        res = get_features(lat, lon, date_str)
+        feature_dict = res[0] if isinstance(res, tuple) else res
         print("  Obtained REAL Phase 1 feature data.")
     except Exception as e:
         print(f"  Real data acquisition failed ({type(e).__name__}): {e}")
