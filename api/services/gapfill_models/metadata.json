@@ -1,0 +1,200 @@
+{
+  "AOD": {
+    "train_samples": 3519,
+    "test_samples": 1586,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "NO2",
+      "SO2",
+      "CO",
+      "O3",
+      "HCHO"
+    ],
+    "metrics": {
+      "overall_mae": 0.3312944263023834,
+      "overall_rmse": 0.4567991474075575,
+      "overall_r2": 0.09280301540169367,
+      "high_rh_mae": 0.40737325936382773,
+      "high_rh_rmse": 0.6046934193455119,
+      "high_rh_r2": 0.0400565101867254,
+      "high_rf_mae": 0.31761242200606893,
+      "high_conc_mae": 0.5176393197295737
+    }
+  },
+  "NO2": {
+    "train_samples": 3283,
+    "test_samples": 1213,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "AOD",
+      "SO2",
+      "CO",
+      "O3",
+      "HCHO"
+    ],
+    "metrics": {
+      "overall_mae": 3.1302105998173874e-05,
+      "overall_rmse": 4.9276527256214296e-05,
+      "overall_r2": 0.31612495498321547,
+      "high_rh_mae": 2.496620913681991e-05,
+      "high_rh_rmse": 4.203387252087263e-05,
+      "high_rh_r2": 0.23506940037281365,
+      "high_rf_mae": 1.6970546208869474e-05,
+      "high_conc_mae": 5.3094310293012215e-05
+    }
+  },
+  "SO2": {
+    "train_samples": 3074,
+    "test_samples": 1236,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "AOD",
+      "NO2",
+      "CO",
+      "O3",
+      "HCHO"
+    ],
+    "metrics": {
+      "overall_mae": 0.0003951681318528724,
+      "overall_rmse": 0.0005147078497279228,
+      "overall_r2": -0.06411117063778482,
+      "high_rh_mae": 0.0003359789955971709,
+      "high_rh_rmse": 0.00045065388278396943,
+      "high_rh_r2": 0.016602732531572628,
+      "high_rf_mae": 0.00036323247811289146,
+      "high_conc_mae": 0.0005320602558937727
+    }
+  },
+  "CO": {
+    "train_samples": 3062,
+    "test_samples": 1186,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "AOD",
+      "NO2",
+      "SO2",
+      "O3",
+      "HCHO"
+    ],
+    "metrics": {
+      "overall_mae": 0.008093807655301127,
+      "overall_rmse": 0.0102018751097155,
+      "overall_r2": -0.7346195405118445,
+      "high_rh_mae": 0.007151325112176764,
+      "high_rh_rmse": 0.009818664704439525,
+      "high_rh_r2": -0.24904501467650397,
+      "high_rf_mae": 0.006446228485103635,
+      "high_conc_mae": 0.014634753303933622
+    }
+  },
+  "O3": {
+    "train_samples": 5439,
+    "test_samples": 1840,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "AOD",
+      "NO2",
+      "SO2",
+      "CO",
+      "HCHO"
+    ],
+    "metrics": {
+      "overall_mae": 0.004885415998844401,
+      "overall_rmse": 0.00615827605514522,
+      "overall_r2": -0.8530188464079944,
+      "high_rh_mae": 0.004743761199353637,
+      "high_rh_rmse": 0.006235058015707974,
+      "high_rh_r2": -0.7902050910019833,
+      "high_rf_mae": 0.004088391687286571,
+      "high_conc_mae": 0.008639640475519766
+    }
+  },
+  "HCHO": {
+    "train_samples": 3694,
+    "test_samples": 1389,
+    "features": [
+      "AT",
+      "RH",
+      "WS",
+      "WD",
+      "TOT-RF",
+      "SR",
+      "BP",
+      "VWS",
+      "Latitude",
+      "Longitude",
+      "Month",
+      "DayOfYear",
+      "AOD",
+      "NO2",
+      "SO2",
+      "CO",
+      "O3"
+    ],
+    "metrics": {
+      "overall_mae": 0.00011700348965873762,
+      "overall_rmse": 0.00014878655185879408,
+      "overall_r2": 0.07760354282807258,
+      "high_rh_mae": 0.00011094926706800638,
+      "high_rh_rmse": 0.0001432016378058346,
+      "high_rh_r2": 0.0780082054653688,
+      "high_rf_mae": 0.00011237427248512998,
+      "high_conc_mae": 0.00017713195480997262
+    }
+  }
+}

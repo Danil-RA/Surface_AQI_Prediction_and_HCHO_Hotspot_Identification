@@ -32,13 +32,12 @@ async def get_hotspots(
         raise HTTPException(status_code=400, detail=f"season must be one of {sorted(SEASONS)}")
 
     # Per-season files: hotspots_winter_2023.geojson, etc.
-    season_file = HOTSPOTS_GEOJSON.parent / f"hotspots_{season}_{year}.geojson"
+    # Look inside data/hotspots/
+    hotspots_dir = HOTSPOTS_GEOJSON.parent / "hotspots"
+    season_file = hotspots_dir / f"hotspots_{season}_{year}.geojson"
     if not season_file.exists():
-        # Fall back to the generic fixture
-        if HOTSPOTS_GEOJSON.exists():
-            season_file = HOTSPOTS_GEOJSON
-        else:
-            return JSONResponse({"type": "FeatureCollection", "features": []})
+        # Do not fall back to fixture data. Return empty.
+        return JSONResponse({"type": "FeatureCollection", "features": []})
 
     with open(season_file, "r", encoding="utf-8") as f:
         data = json.load(f)

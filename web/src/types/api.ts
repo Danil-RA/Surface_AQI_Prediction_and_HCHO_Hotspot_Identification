@@ -38,7 +38,7 @@ export type TimeseriesVariable =
 
 export type Pollutant = 'PM2.5' | 'PM10' | 'NO2' | 'SO2' | 'CO' | 'O3'
 
-export type HotspotDriver = 'pyrogenic' | 'biogenic' | 'mixed' | 'undetermined'
+export type HotspotDriver = 'pyrogenic_associated' | 'non_fire_associated' | 'undetermined'
 
 // ---------------------------------------------------------------------------
 // CPCB AQI colour scale (SPEC.md §6) — use these constants, not hardcoded hex
@@ -146,6 +146,13 @@ export interface PredictionResponse {
       source: string
     }
   }
+  data_quality: 'HIGH' | 'MODERATE' | 'LIMITED'
+  satellite_provenance: Record<string, {
+    value: number | null
+    source: string
+    source_date?: string
+    model?: string
+  }>
 }
 
 // ---------------------------------------------------------------------------
@@ -158,13 +165,24 @@ export interface HotspotProperties {
   p_value: number
   mean_hcho: number      // mol/m²
   fire_count_mean: number
+  fire_count_total: number
+  fire_active_days: number
+  fire_associated_date_fraction: number
+  mean_temperature: number
+  mean_relative_humidity: number
+  mean_wind_speed: number
+  prevailing_wind_direction: number
+  mean_precipitation: number
+  observation_count: number
+  area_km2: number
   dominant_driver: HotspotDriver
   season: Season
+  year: number
 }
 
-export interface HotspotFeature extends GeoJSON.Feature<GeoJSON.Polygon, HotspotProperties> {}
+export interface HotspotFeature extends GeoJSON.Feature<GeoJSON.Geometry, HotspotProperties> {}
 
-export interface HotspotsResponse extends GeoJSON.FeatureCollection<GeoJSON.Polygon, HotspotProperties> {}
+export interface HotspotsResponse extends GeoJSON.FeatureCollection<GeoJSON.Geometry, HotspotProperties> {}
 
 // Minimal GeoJSON types (avoids adding @types/geojson as a dependency for now)
 declare namespace GeoJSON {
@@ -181,7 +199,11 @@ declare namespace GeoJSON {
     type: 'Polygon'
     coordinates: number[][][]
   }
-  type Geometry = Polygon
+  interface MultiPolygon {
+    type: 'MultiPolygon'
+    coordinates: number[][][][]
+  }
+  type Geometry = Polygon | MultiPolygon
 }
 
 // ---------------------------------------------------------------------------

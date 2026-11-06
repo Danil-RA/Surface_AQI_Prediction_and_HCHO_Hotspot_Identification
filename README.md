@@ -91,28 +91,35 @@ Once step 3 of the build (location detail panel) works against fixtures, replace
 
 ---
 
-## Build Order (Prompts 1–8)
+## Project Highlights
 
-| Step | Prompt | What it adds |
-|------|--------|-------------|
-| 1 | Prompt 1 | Map + legend (one static AQI layer) |
-| 2 | Prompt 2 | Date timeline + layer switching |
-| 3 | Prompt 3 | Click → detail panel (wired to /api/aqi) |
-| 4 | Prompt 4 | Time series with CI band and coverage gaps |
-| 5 | Prompt 5 | Station markers (observed vs predicted) |
-| 6 | Prompt 6 | HCHO hotspots page (/hotspots) |
-| 7 | Prompt 7 | Validation page (/validation) |
-| 8 | Prompt 8 | Method page + responsive + accessibility pass |
+- **Interactive AQI Mapping:** Visualisation of air quality information across geographical locations using an interactive map.
+- **Multi-Pollutant Prediction:** Prediction of PM2.5, PM10, NO2, SO2, O3 and CO concentrations using machine learning models.
+- **Location-Based Analysis:** Explore air quality predictions for selected geographical coordinates and locations.
+- **Temporal Analysis:** Examine air quality variations over time through interactive visualisations.
+- **Monitoring Station Insights:** Explore ground-based observations alongside model predictions.
+- **HCHO Hotspot Detection:** Identify and analyse seasonal formaldehyde hotspots using satellite observations and spatial statistical techniques.
+- **Fire Association Analysis:** Analyse the spatial association between HCHO hotspots and MODIS active fire observations.
+- **Model Validation:** Explore model performance and validation metrics through a dedicated dashboard.
+- **PDF Report Generation:** Generate downloadable reports containing AQI predictions, pollutant details and data-quality information.
 
 ---
 
-## The Three Things to Check After Every Step
+## Technical Implementation
 
-Per `PROMPT.md`:
-
-1. **AQI colour scale is stepped, not a gradient** — hard edges at CPCB breakpoints
-2. **No-coverage never renders as a value** — `null` aqi cells show the hatch pattern, not 0
-3. **No breakpoint arithmetic in the frontend** — all AQI computation is server-side only
+| Component | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| Backend | Python, FastAPI, Uvicorn |
+| Machine Learning | Scikit-learn, XGBoost, LightGBM |
+| Geospatial Visualisation | MapLibre GL JS |
+| Data Visualisation | Recharts |
+| Satellite Data | Sentinel-5P, MODIS MAIAC AOD, MODIS Active Fire |
+| Meteorological Data | ERA5 / ERA5-Land |
+| Ground Observations | CPCB monitoring data |
+| Spatial Statistics | Getis-Ord Gi* |
+| Model Architecture | Stacking Ensemble Regression |
+| PDF Reporting | jsPDF, jsPDF-AutoTable |
 
 ---
 

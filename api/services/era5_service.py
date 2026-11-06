@@ -21,7 +21,10 @@ def get_era5_features(latitude: float, longitude: float, date_str: str) -> dict:
     collection = ee.ImageCollection(dataset_id).filterBounds(point).filterDate(start_date, end_date)
     
     if collection.size().getInfo() == 0:
-        raise MissingDataError("ERA5 Variables", dataset_id, f"No ERA5 hourly images found for {date_str}.")
+        return {
+            "AT": None, "RH": None, "WS": None, "WD": None,
+            "TOT-RF": None, "SR": None, "BP": None
+        }
 
     # Mean aggregation for temperatures, wind components, pressure
     mean_bands = [
@@ -44,47 +47,43 @@ def get_era5_features(latitude: float, longitude: float, date_str: str) -> dict:
     scale = 27830  # ERA5 ~0.25 deg
     mean_res = mean_image.reduceRegion(reducer=ee.Reducer.first(), geometry=point, scale=scale).getInfo()
     sum_res = sum_image.reduceRegion(reducer=ee.Reducer.first(), geometry=point, scale=scale).getInfo()
-    
-    # Check for missing values
-    for b in mean_bands:
-        if mean_res.get(b) is None:
-            raise MissingDataError(b, dataset_id, "ERA5 variable is masked out at this location.")
-            
-    for b in sum_bands:
-        if sum_res.get(b) is None:
-            raise MissingDataError(b, dataset_id, "ERA5 variable is masked out at this location.")
 
     # Apply conversions
     
-    # Temperatures: K to °C
-    t_kelvin = mean_res["temperature_2m"]
-    td_kelvin = mean_res["dewpoint_temperature_2m"]
-    at_c = t_kelvin - 273.15
-    td_c = td_kelvin - 273.15
-    
-    # Relative Humidity (%) via Magnus formula
-    # E = 6.11 * 10.0 ** (7.5 * T / (237.3 + T))
-    # RH = 100 * (E_dew / E_air)
-    def magnus_e(t):
-        return 6.11 * (10.0 ** (7.5 * t / (237.3 + t)))
-    
-    rh = 100.0 * (magnus_e(td_c) / magnus_e(at_c))
-    
+    # Temperatures & RH
+    t_kelvin = mean_res.get("temperature_2m")
+    td_kelvin = mean_res.get("dewpoint_temperature_2m")
+    if t_kelvin is not None and td_kelvin is not None:
+        at_c = t_kelvin - 273.15
+        td_c = td_kelvin - 273.15
+        def magnus_e(t):
+            return 6.11 * (10.0 ** (7.5 * t / (237.3 + t)))
+        rh = 100.0 * (magnus_e(td_c) / magnus_e(at_c))
+    else:
+        at_c = None
+        rh = None
+
     # Wind
-    u = mean_res["u_component_of_wind_10m"]
-    v = mean_res["v_component_of_wind_10m"]
-    ws = math.sqrt(u**2 + v**2)
-    # Meteorological wind direction: angle from which the wind is blowing
-    wd = (math.degrees(math.atan2(-u, -v)) + 360) % 360
+    u = mean_res.get("u_component_of_wind_10m")
+    v = mean_res.get("v_component_of_wind_10m")
+    if u is not None and v is not None:
+        ws = math.sqrt(u**2 + v**2)
+        wd = (math.degrees(math.atan2(-u, -v)) + 360) % 360
+    else:
+        ws = None
+        wd = None
     
     # Precipitation: meters to mm
-    tot_rf = sum_res["total_precipitation"] * 1000.0
+    raw_precip = sum_res.get("total_precipitation")
+    tot_rf = raw_precip * 1000.0 if raw_precip is not None else None
     
-    # Solar Radiation: Accumulated J/m^2 over 24h to average W/m^2 (J/s per m^2)
-    sr = sum_res["surface_solar_radiation_downwards"] / (24 * 3600)
+    # Solar Radiation
+    raw_sr = sum_res.get("surface_solar_radiation_downwards")
+    sr = raw_sr / (24 * 3600) if raw_sr is not None else None
     
-    # Pressure: Pascals to mmHg
-    bp = mean_res["surface_pressure"] / 133.322
+    # Pressure
+    raw_bp = mean_res.get("surface_pressure")
+    bp = raw_bp / 133.322 if raw_bp is not None else None
 
     return {
         "AT": at_c,

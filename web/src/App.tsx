@@ -9,10 +9,8 @@ import { MethodPage } from './pages/MethodPage'
 // ---------------------------------------------------------------------------
 
 const NAV_ITEMS: { to: string; label: string; end?: boolean }[] = [
-  { to: '/',           label: 'Map',        end: true },
-  { to: '/hotspots',   label: 'Hotspots' },
-  { to: '/validation', label: 'Validation' },
-  { to: '/method',     label: 'Method' },
+  { to: '/',         label: 'Map',      end: true },
+  { to: '/hotspots', label: 'Hotspots' },
 ]
 
 function Nav() {

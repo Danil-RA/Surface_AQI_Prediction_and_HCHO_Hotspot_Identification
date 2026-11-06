@@ -18,7 +18,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from api.db import get_connection, close_connection
-from api.routers import aqi, timeseries, hotspots, stations, validation, grid, predict
+from api.routers import aqi, timeseries, hotspots, stations, validation, grid, predict, geocode
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +78,7 @@ app.include_router(hotspots.router,   prefix="/api", tags=["Hotspots"])
 app.include_router(stations.router,   prefix="/api", tags=["Stations"])
 app.include_router(validation.router, prefix="/api", tags=["Validation"])
 app.include_router(predict.router,    prefix="/api", tags=["Prediction"])
+app.include_router(geocode.router,    prefix="/api", tags=["Geocoding"])
 
 
 # ---------------------------------------------------------------------------

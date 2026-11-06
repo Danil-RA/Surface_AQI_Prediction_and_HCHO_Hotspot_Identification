@@ -1,17 +1,17 @@
 import os
-import joblib
-import pandas as pd
-import numpy as np
+import json
+import subprocess
 from typing import Dict, Any
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "multi_pollutant_stacking_pipeline.pkl")
+WORKER_SCRIPT = os.path.join(os.path.dirname(__file__), "model_worker.py")
+# The path to the isolated Python interpreter
+PYTHON_EXE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "retrain_env", "Scripts", "python.exe")
 
 class ModelServiceError(Exception):
     pass
 
 class ModelService:
     _instance = None
-    _model_data = None
     
     EXPECTED_FEATURES = [
         "AOD", "NO2", "SO2", "CO", "O3", "HCHO", "AT (°C)", "RH (%)", "WS (m/s)", "WD (deg)", 
@@ -26,32 +26,14 @@ class ModelService:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ModelService, cls).__new__(cls)
-            cls._instance._load_model()
+            cls._instance._verify_environment()
         return cls._instance
 
-    def _load_model(self):
-        if not os.path.exists(MODEL_PATH):
-            raise ModelServiceError(f"Model file missing at {MODEL_PATH}")
-            
-        try:
-            # We use joblib as it is typically used for large scikit-learn pipelines
-            self._model_data = joblib.load(MODEL_PATH)
-        except Exception as e:
-            raise ModelServiceError(f"Invalid or corrupt model file: {str(e)}")
-            
-        if not isinstance(self._model_data, dict):
-            raise ModelServiceError("Unexpected pickle structure: Model is not a dictionary")
-            
-        if "models" not in self._model_data or "feature_cols" not in self._model_data or "targets" not in self._model_data:
-            raise ModelServiceError("Unexpected pickle structure: Missing required keys (models, feature_cols, targets)")
-            
-        # Validate feature contract
-        if list(self._model_data["feature_cols"]) != self.EXPECTED_FEATURES:
-            raise ModelServiceError("Feature contract mismatch: Model features do not match the expected 23 features in exact order")
-            
-        # Validate targets contract
-        if list(self._model_data["targets"]) != self.EXPECTED_TARGETS:
-            raise ModelServiceError("Target contract mismatch: Model targets do not match the expected 6 targets")
+    def _verify_environment(self):
+        if not os.path.exists(PYTHON_EXE):
+            raise ModelServiceError(f"Isolated Python interpreter missing at {PYTHON_EXE}")
+        if not os.path.exists(WORKER_SCRIPT):
+            raise ModelServiceError(f"Worker script missing at {WORKER_SCRIPT}")
 
     def predict(self, feature_dict: Dict[str, Any]) -> Dict[str, float]:
         # Validate missing features
@@ -60,38 +42,48 @@ class ModelService:
             raise ModelServiceError(f"Missing input feature(s): {', '.join(missing_features)}")
             
         # Extract exactly in order and validate
-        feature_values = []
         for feat in self.EXPECTED_FEATURES:
             val = feature_dict[feat]
-            
-            # Validate numeric and finite
+            # Validate numeric
             if val is None or not isinstance(val, (int, float)):
                 raise ModelServiceError(f"Invalid numeric value for feature {feat}: {val}")
-            if not np.isfinite(val):
-                raise ModelServiceError(f"NaN or infinite value for feature {feat}: {val}")
                 
-            feature_values.append(val)
-            
-        # Construct DataFrame
-        # A 1-row DataFrame must be created to pass to scikit-learn models properly, keeping the column names
-        df = pd.DataFrame([feature_values], columns=self.EXPECTED_FEATURES)
-        
-        # Predict using each target model
-        predictions = {}
+        # Call isolated worker
+        input_data = json.dumps(feature_dict)
         try:
-            models = self._model_data["models"]
-            
-            for target in self.EXPECTED_TARGETS:
-                if target not in models:
-                    raise ModelServiceError(f"Model missing for target: {target}")
-                
-                model = models[target]
-                pred = model.predict(df)[0]
-                predictions[target] = float(pred)
-                
+            result = subprocess.run(
+                [PYTHON_EXE, WORKER_SCRIPT],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=30
+            )
+        except subprocess.TimeoutExpired:
+            raise ModelServiceError("Model prediction timed out.")
         except Exception as e:
-            raise ModelServiceError(f"Prediction failure: {str(e)}")
+            raise ModelServiceError(f"Failed to execute model worker: {str(e)}")
+
+        if result.returncode != 0:
+            raise ModelServiceError(f"Model worker failed: {result.stderr.strip()} (STDOUT: {result.stdout.strip()})")
+
+        try:
+            output_data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            raise ModelServiceError(f"Invalid JSON response from model worker: {result.stdout.strip()}")
+
+        if output_data.get("status") != "success":
+            error_msg = output_data.get("message", "Unknown error in model worker")
+            raise ModelServiceError(f"Prediction failure: {error_msg}")
+
+        predictions = output_data.get("predictions")
+        if not predictions or not isinstance(predictions, dict):
+            raise ModelServiceError("Model worker did not return predictions dictionary")
             
+        for target in self.EXPECTED_TARGETS:
+            if target not in predictions:
+                raise ModelServiceError(f"Model worker missed target: {target}")
+                
         return predictions
 
 def predict_pollutants(feature_dict: Dict[str, Any]) -> Dict[str, float]:
@@ -100,3 +92,4 @@ def predict_pollutants(feature_dict: Dict[str, Any]) -> Dict[str, float]:
     """
     service = ModelService()
     return service.predict(feature_dict)
+

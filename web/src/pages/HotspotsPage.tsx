@@ -1,13 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
-import {
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from 'recharts'
 import { Season, HotspotProperties, HotspotFeature } from '../types/api'
 
 const SEASONS: { id: Season; label: string }[] = [
@@ -19,7 +11,7 @@ const SEASONS: { id: Season; label: string }[] = [
 
 export const HotspotsPage: React.FC = () => {
   const [season, setSeason] = useState<Season>('winter')
-  const [year] = useState<number>(2023)
+  const [year] = useState<number>(2024)
   const [hotspotsData, setHotspotsData] = useState<HotspotFeature[]>([])
   const [selectedCluster, setSelectedCluster] = useState<HotspotProperties | null>(null)
 
@@ -111,14 +103,6 @@ export const HotspotsPage: React.FC = () => {
       })
   }, [season, year, mapLoaded])
 
-  // Lagged correlation data (Lags 0 to 3 days per SPEC.md 4.3)
-  const lagData = [
-    { lag: 'Lag 0d', correlation: 0.68 },
-    { lag: 'Lag 1d', correlation: 0.74 },
-    { lag: 'Lag 2d', correlation: 0.59 },
-    { lag: 'Lag 3d', correlation: 0.42 },
-  ]
-
   return (
     <div className="flex h-full w-full overflow-hidden font-sans">
       {/* Map View */}
@@ -151,20 +135,24 @@ export const HotspotsPage: React.FC = () => {
             HCHO Hotspots Analysis
           </h1>
           <p className="text-2xs text-chrome-300 mt-0.5">
-            Tropospheric formaldehyde elevated clusters and biomass burning drivers
+            Tropospheric formaldehyde elevated clusters and fire association analysis
           </p>
         </div>
 
         {/* Cluster Details Card */}
-        {selectedCluster && (
+        {selectedCluster ? (
           <div className="bg-chrome-700/30 border border-chrome-700 rounded p-3 space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-mono text-rose-400 font-semibold">
-                Cluster {selectedCluster.cluster_id}
+                Cluster {selectedCluster.cluster_id.substring(0, 8)}
               </span>
               <span className="text-2xs text-chrome-500 uppercase">
-                {selectedCluster.season}
+                {selectedCluster.season} {selectedCluster.year}
               </span>
+            </div>
+            
+            <div className="text-2xs text-chrome-400 font-medium pt-1 pb-0.5 border-b border-chrome-700/50">
+              Statistical Significance
             </div>
             <div className="grid grid-cols-2 gap-2 text-2xs tabular font-mono">
               <div className="bg-chrome-900/60 p-1.5 rounded">
@@ -179,44 +167,63 @@ export const HotspotsPage: React.FC = () => {
                   {selectedCluster.mean_hcho.toExponential(2)}
                 </div>
               </div>
-              <div className="bg-chrome-900/60 p-1.5 rounded">
-                <div className="text-chrome-500">Mean Fires/Day</div>
-                <div className="text-chrome-100 font-bold text-sm">
-                  {selectedCluster.fire_count_mean.toFixed(1)}
+            </div>
+
+            <div className="text-2xs text-chrome-400 font-medium pt-2 pb-0.5 border-b border-chrome-700/50">
+              Fire Association
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-2xs tabular font-mono">
+              <div className="bg-chrome-900/60 p-1.5 rounded col-span-2">
+                <div className="text-chrome-500">Driver</div>
+                <div className="text-amber-400 font-bold capitalize text-sm">
+                  {selectedCluster.dominant_driver.replace(/_/g, ' ')}
                 </div>
               </div>
               <div className="bg-chrome-900/60 p-1.5 rounded">
-                <div className="text-chrome-500">Dominant Driver</div>
-                <div className="text-amber-400 font-bold capitalize">
-                  {selectedCluster.dominant_driver}
+                <div className="text-chrome-500">Total Fires</div>
+                <div className="text-chrome-100 font-bold">
+                  {Math.round(selectedCluster.fire_count_total)}
+                </div>
+              </div>
+              <div className="bg-chrome-900/60 p-1.5 rounded">
+                <div className="text-chrome-500">Active Days</div>
+                <div className="text-chrome-100 font-bold">
+                  {selectedCluster.fire_active_days}
                 </div>
               </div>
             </div>
+
+            <div className="text-2xs text-chrome-400 font-medium pt-2 pb-0.5 border-b border-chrome-700/50">
+              Meteorology
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-2xs tabular font-mono">
+              <div className="bg-chrome-900/60 p-1.5 rounded">
+                <div className="text-chrome-500">Mean Temp</div>
+                <div className="text-chrome-100">{selectedCluster.mean_temperature.toFixed(1)} °C</div>
+              </div>
+              <div className="bg-chrome-900/60 p-1.5 rounded">
+                <div className="text-chrome-500">Mean RH</div>
+                <div className="text-chrome-100">{selectedCluster.mean_relative_humidity.toFixed(1)} %</div>
+              </div>
+              <div className="bg-chrome-900/60 p-1.5 rounded">
+                <div className="text-chrome-500">Wind Speed</div>
+                <div className="text-chrome-100">{selectedCluster.mean_wind_speed.toFixed(1)} m/s</div>
+              </div>
+              <div className="bg-chrome-900/60 p-1.5 rounded">
+                <div className="text-chrome-500">Precipitation</div>
+                <div className="text-chrome-100">{(selectedCluster.mean_precipitation * 1000).toFixed(2)} mm</div>
+              </div>
+            </div>
+            
+            <div className="text-2xs text-chrome-500 text-right pt-2">
+              Area: {Math.round(selectedCluster.area_km2).toLocaleString()} km²
+            </div>
+          </div>
+        ) : (
+          <div className="text-2xs text-chrome-500 italic p-4 text-center border border-dashed border-chrome-700 rounded">
+            {hotspotsData.length > 0 ? 'Select a cluster on the map' : 'Data unavailable for this season.'}
           </div>
         )}
-
-        {/* Lagged Correlation Chart (SPEC.md 4.3) */}
-        <div className="space-y-1.5 bg-chrome-700/20 border border-chrome-700 rounded p-3">
-          <div className="text-2xs font-semibold text-chrome-300 uppercase tracking-wider">
-            Lagged Correlation: HCHO vs Fire Counts
-          </div>
-          <div className="h-28 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={lagData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                <XAxis dataKey="lag" tick={{ fill: '#8CA3B8', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#8CA3B8', fontSize: 10 }} domain={[0, 1]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', fontSize: 11 }}
-                  formatter={(v: any) => [Number(v).toFixed(2), 'Pearson r']}
-                />
-                <Bar dataKey="correlation" fill="#F43F5E" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-2xs text-chrome-500 italic text-center">
-            Peak correlation at Lag 1d indicates transport delay from fires
-          </div>
-        </div>
 
         {/* Ranked Cluster Table */}
         <div className="space-y-1.5 flex-1 flex flex-col">
@@ -229,30 +236,44 @@ export const HotspotsPage: React.FC = () => {
                 <tr>
                   <th className="p-1.5">ID</th>
                   <th className="p-1.5 tabular text-right">Gi*</th>
-                  <th className="p-1.5">Driver</th>
+                  <th className="p-1.5 tabular text-right">Fires</th>
+                  <th className="p-1.5">Association</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-chrome-700/40">
-                {hotspotsData.map((f) => {
-                  const p = f.properties
-                  const isSelected = selectedCluster?.cluster_id === p.cluster_id
-                  return (
-                    <tr
-                      key={p.cluster_id}
-                      onClick={() => setSelectedCluster(p)}
-                      className={[
-                        'cursor-pointer transition-colors',
-                        isSelected ? 'bg-rose-950/40 text-rose-200' : 'hover:bg-chrome-700/30 text-chrome-100',
-                      ].join(' ')}
-                    >
-                      <td className="p-1.5 font-mono">{p.cluster_id}</td>
-                      <td className="p-1.5 tabular font-mono text-right font-semibold">
-                        {p.gi_star.toFixed(2)}
-                      </td>
-                      <td className="p-1.5 capitalize text-chrome-300">{p.dominant_driver}</td>
-                    </tr>
-                  )
-                })}
+                {hotspotsData.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-chrome-500 italic">No clusters found</td>
+                  </tr>
+                ) : (
+                  hotspotsData
+                    .sort((a, b) => b.properties.gi_star - a.properties.gi_star)
+                    .map((f) => {
+                    const p = f.properties
+                    const isSelected = selectedCluster?.cluster_id === p.cluster_id
+                    return (
+                      <tr
+                        key={p.cluster_id}
+                        onClick={() => setSelectedCluster(p)}
+                        className={[
+                          'cursor-pointer transition-colors',
+                          isSelected ? 'bg-rose-950/40 text-rose-200' : 'hover:bg-chrome-700/30 text-chrome-100',
+                        ].join(' ')}
+                      >
+                        <td className="p-1.5 font-mono" title={p.cluster_id}>{p.cluster_id.substring(0, 5)}</td>
+                        <td className="p-1.5 tabular font-mono text-right font-semibold">
+                          {p.gi_star.toFixed(2)}
+                        </td>
+                        <td className="p-1.5 tabular font-mono text-right text-chrome-400">
+                          {Math.round(p.fire_count_total)}
+                        </td>
+                        <td className="p-1.5 capitalize text-chrome-300">
+                          {p.dominant_driver.replace(/_/g, ' ')}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>

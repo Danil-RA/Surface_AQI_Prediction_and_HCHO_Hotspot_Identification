@@ -57,13 +57,14 @@ def get_satellite_features(latitude: float, longitude: float, date_str: str) -> 
 
     for feat_name, config in datasets.items():
         raw_val = None
+        best_offset = 0
+        best_date_str = date_str
         
-        # Historical temporal method: AOD searches subsequent dates if unavailable.
-        # Other pollutants strictly check the target date.
-        max_days = 7 if feat_name == "AOD" else 1
+        # Phase 2: Temporal recovery up to 3 days backwards (T, T-1, T-2, T-3)
+        max_days = 4
         
         for offset in range(max_days):
-            current_date = target_date + timedelta(days=offset)
+            current_date = target_date - timedelta(days=offset)
             start_date = current_date.strftime("%Y-%m-%d")
             end_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
             
@@ -83,11 +84,18 @@ def get_satellite_features(latitude: float, longitude: float, date_str: str) -> 
             
             if result is not None and result.get(config["band"]) is not None:
                 raw_val = result.get(config["band"])
+                best_offset = offset
+                best_date_str = start_date
                 break
                 
         if raw_val is None:
-            raise MissingDataError(feat_name, config["id"], f"Pixel is masked/missing in ~1000m buffer for {date_str} (searched {max_days} days).")
-            
-        features[feat_name] = raw_val * config["multiplier"]
+            features[feat_name] = None
+        else:
+            source = "observed" if best_offset == 0 else "temporal_recovery"
+            features[feat_name] = {
+                "value": raw_val * config["multiplier"],
+                "source": source,
+                "source_date": best_date_str
+            }
         
     return features

@@ -42,8 +42,8 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* Scrubbable tick bar */}
-      <div className="relative w-full h-8 flex items-center overflow-x-auto py-1 space-x-1 no-scrollbar">
-        {dates.map((d) => {
+      <div className="relative w-full h-8 flex items-center overflow-x-auto overflow-y-hidden py-1 space-x-1 custom-scrollbar">
+        {dates.map((d, index) => {
           const isSelected = d === selectedDate
           const hasGap = noCoverageDates.has(d)
 
@@ -53,7 +53,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               onClick={() => onDateSelect(d)}
               title={hasGap ? `${d} (Coverage Gap)` : d}
               className={[
-                'h-6 flex-1 min-w-[6px] max-w-[14px] rounded-xs transition-all relative group',
+                'h-6 flex-1 min-w-[6px] max-w-[14px] rounded-xs transition-colors relative group',
                 isSelected
                   ? 'bg-sky-400 ring-2 ring-sky-300 ring-offset-1 ring-offset-chrome-900 z-10'
                   : hasGap
@@ -64,7 +64,15 @@ export const Timeline: React.FC<TimelineProps> = ({
               aria-pressed={isSelected}
             >
               {/* Tooltip on hover */}
-              <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-chrome-900 border border-chrome-700 text-chrome-100 text-2xs px-1.5 py-0.5 rounded tabular whitespace-nowrap pointer-events-none z-20">
+              <span
+                className={`absolute bottom-full mb-1 ${
+                  index >= dates.length - 4
+                    ? 'right-0 translate-x-0'
+                    : index < 4
+                    ? 'left-0 translate-x-0'
+                    : 'left-1/2 -translate-x-1/2'
+                } hidden group-hover:block bg-chrome-900 border border-chrome-700 text-chrome-100 text-2xs px-1.5 py-0.5 rounded tabular whitespace-nowrap pointer-events-none z-20`}
+              >
                 {d}
               </span>
             </button>

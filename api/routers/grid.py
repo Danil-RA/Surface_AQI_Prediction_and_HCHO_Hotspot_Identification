@@ -36,8 +36,10 @@ async def get_grid(
     """, [date, step, step]).fetchall()
 
     if not rows:
+        print(f"DEBUG: No rows found for date={date}, step={step}")
         return JSONResponse({"type": "FeatureCollection", "features": []})
 
+    print(f"DEBUG: Found {len(rows)} rows for date={date}")
     features = []
     # Grid spans 28 degrees lat (8-36) and 28 degrees lon (68-96) over 200 cells
     # Each cell spacing is ~0.14 degrees

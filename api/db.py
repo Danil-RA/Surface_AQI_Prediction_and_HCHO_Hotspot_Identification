@@ -13,6 +13,9 @@ import os
 import pathlib
 import duckdb
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Paths

@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { PredictionResponse, AQI_COLORS } from '../types/api'
+import { generateAqiPdfReport } from '../utils/generateAqiPdfReport'
 
 interface PredictionDetailPanelProps {
   data: PredictionResponse | null
+  locationName?: string | null
   isLoading: boolean
   error: string | null
   onClose: () => void
@@ -10,27 +12,58 @@ interface PredictionDetailPanelProps {
 
 export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
   data,
+  locationName,
   isLoading,
   error,
   onClose,
 }) => {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
+
+  // Clear PDF error if data or error states change
+  useEffect(() => {
+    setPdfError(null)
+  }, [data, error])
+
+  const handleDownloadPdf = async () => {
+    if (!data) return
+    setIsGeneratingPdf(true)
+    setPdfError(null)
+    try {
+      await generateAqiPdfReport({ data, locationName })
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : 'Failed to generate PDF report.')
+    } finally {
+      setIsGeneratingPdf(false)
+    }
+  }
+
   if (!data && !isLoading && !error) return null
 
   return (
     <div
-      className="relative w-80 max-w-[calc(100vw-2rem)] bg-chrome-900/95 backdrop-blur-md border border-chrome-700 rounded shadow-2xl flex flex-col transition-all duration-300 font-sans"
+      className="relative w-80 max-w-[calc(100vw-2rem)] bg-chrome-900/95 backdrop-blur-md border border-chrome-700 rounded shadow-2xl flex flex-col max-h-[calc(100vh-8.5rem)] overflow-hidden transition-all duration-300 font-sans"
       role="dialog"
       aria-labelledby="prediction-detail-heading"
+      onWheel={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-chrome-700/80 bg-chrome-900">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-chrome-700/80 bg-chrome-900 shrink-0">
         <div>
           <h2 id="prediction-detail-heading" className="text-sm font-semibold text-chrome-100">
             Real-time Prediction
           </h2>
           {data && (
-            <div className="tabular text-chrome-300 text-2xs font-mono">
-              {data.location.latitude.toFixed(3)}°N, {data.location.longitude.toFixed(3)}°E • {data.date}
+            <div className="text-chrome-300 text-2xs">
+              {locationName && (
+                <div className="truncate max-w-[190px] text-chrome-200 font-medium" title={locationName}>
+                  {locationName}
+                </div>
+              )}
+              <div className="tabular font-mono">
+                {data.location.latitude.toFixed(3)}°N, {data.location.longitude.toFixed(3)}°E • {data.date}
+              </div>
             </div>
           )}
         </div>
@@ -43,18 +76,95 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar">
         {isLoading ? (
           <div className="text-chrome-300 text-xs py-8 text-center animate-pulse">
             Loading prediction...
           </div>
         ) : error ? (
-          <div className="bg-chrome-700/30 border border-chrome-700 rounded p-4 text-center space-y-2">
-            <div className="text-sm font-semibold text-amber-400">
-              Prediction Failed
-            </div>
-            <p className="text-xs text-chrome-300 leading-relaxed">{error}</p>
-          </div>
+          (() => {
+            try {
+              const errObj = JSON.parse(error)
+              if (errObj.type === 'MISSING_DATA') {
+                const filterVWS = (list: any[]) =>
+                  (list || [])
+                    .filter((src: any) => src.source !== 'Synthetic VWS')
+                    .map((src: any) => ({
+                      ...src,
+                      variables: (src.variables || []).filter((v: string) => v !== 'VWS'),
+                    }))
+                    .filter((src: any) => src.variables.length > 0)
+
+                const missingData = filterVWS(errObj.missing_data)
+                const availableData = filterVWS(errObj.available_data)
+
+                return (
+                  <div className="bg-chrome-700/30 border border-chrome-700 rounded p-4 text-left space-y-4">
+                    <div className="text-sm font-semibold text-amber-400 text-center border-b border-chrome-700/50 pb-2">
+                      Environmental Data Status
+                    </div>
+                    <p className="text-xs text-chrome-300 text-center">
+                      Environmental data is unavailable for this location/date.
+                    </p>
+                    
+                    {missingData.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-rose-400 mb-2">
+                          ✕ Missing data
+                        </div>
+                        <div className="space-y-2 text-xs pl-1">
+                          {missingData.map((src: any) => (
+                            <div key={src.source}>
+                              <div className="font-medium text-chrome-100">{src.source}</div>
+                              <ul className="list-none pl-3 text-chrome-300 mt-0.5 space-y-0.5">
+                                {src.variables.map((v: string) => (
+                                  <li key={v} className="flex items-center gap-1.5 before:content-['•'] before:text-chrome-500">
+                                    {v.replace('NO2', 'NO₂').replace('SO2', 'SO₂').replace('O3', 'O₃')}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {availableData.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-emerald-400 mb-2 border-t border-chrome-700/50 pt-3">
+                          ✓ Available data
+                        </div>
+                        <div className="space-y-2 text-xs pl-1">
+                          {availableData.map((src: any) => (
+                            <div key={src.source}>
+                              <div className="font-medium text-chrome-100">{src.source}</div>
+                              <ul className="list-none pl-3 text-chrome-300 mt-0.5 space-y-0.5">
+                                {src.variables.map((v: string) => (
+                                  <li key={v} className="flex items-center gap-1.5 before:content-['•'] before:text-chrome-500">
+                                    {v.replace('NO2', 'NO₂').replace('SO2', 'SO₂').replace('O3', 'O₃')}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            } catch (e) {
+              // Not JSON or unknown format, fallback to standard text error
+            }
+            return (
+              <div className="bg-chrome-700/30 border border-chrome-700 rounded p-4 text-center space-y-2">
+                <div className="text-sm font-semibold text-amber-400">
+                  Prediction Failed
+                </div>
+                <p className="text-xs text-chrome-300 leading-relaxed">{error}</p>
+              </div>
+            )
+          })()
         ) : data ? (
           <>
             {/* Primary AQI Readout */}
@@ -118,14 +228,78 @@ export const PredictionDetailPanel: React.FC<PredictionDetailPanelProps> = ({
               </div>
             </div>
 
-            {/* Provenance */}
-            <div className="bg-chrome-700/20 border border-chrome-700 rounded p-2.5 space-y-1">
-              <div className="text-2xs font-semibold text-chrome-300 uppercase tracking-wider">
-                Data Provenance
+            {/* Download Report (PDF) Action */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="w-full py-2 px-3 bg-chrome-800 hover:bg-chrome-700 active:bg-chrome-600 disabled:opacity-60 disabled:cursor-not-allowed border border-chrome-600 hover:border-chrome-500 rounded text-xs font-medium text-chrome-100 flex items-center justify-center gap-2 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                title="Download prediction report as PDF"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-sky-400 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Generating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span>Download Report (PDF)</span>
+                  </>
+                )}
+              </button>
+              {pdfError && (
+                <div className="text-2xs text-rose-400 text-center mt-1.5 bg-rose-950/40 border border-rose-800/50 rounded py-1 px-2">
+                  {pdfError}
+                </div>
+              )}
+            </div>
+
+            {/* Environmental Data Status */}
+            <div className={`bg-chrome-700/20 border ${data.data_quality === 'HIGH' ? 'border-emerald-700/50' : data.data_quality === 'MODERATE' ? 'border-amber-700/50' : 'border-rose-700/50'} rounded p-3 space-y-3`}>
+              <div className={`flex items-center gap-2 text-xs font-medium ${data.data_quality === 'HIGH' ? 'text-emerald-400' : data.data_quality === 'MODERATE' ? 'text-amber-400' : 'text-rose-400'}`}>
+                {data.data_quality === 'HIGH' || data.data_quality === 'MODERATE' ? 'Environmental Data: All required inputs available ✓' :
+                 'Environmental Data: Spatiotemporal fallback used ⚠'}
               </div>
-              <div className="text-xs text-chrome-300 flex justify-between">
-                <span>VWS source:</span>
-                <span className="font-mono text-sky-400 capitalize">{data.provenance.vws.source.replace('_', ' ')}</span>
+              
+              {data.data_quality === 'LIMITED' && (
+                <div className="text-2xs text-chrome-300 leading-snug">
+                  Satellite observation unavailable; a validated spatiotemporal fallback was used.
+                  {['AOD', 'NO2'].some(k => data.satellite_provenance[k]?.source === 'spatiotemporal_gapfill') && (
+                    <div className="text-rose-300 mt-1 italic">
+                      Limited data quality: spatial reconstruction may underestimate localized pollution extremes.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1.5 border-t border-chrome-700/50 pt-2">
+                {Object.entries(data.satellite_provenance)
+                  .filter(([key]) => key !== 'VWS' && key !== 'Synthetic VWS')
+                  .map(([key, prov]) => (
+                  <div key={key} className="flex justify-between items-center text-2xs">
+                    <span className="text-chrome-300 font-medium">{key}</span>
+                    {prov.source === 'observed' || prov.source === 'temporal_recovery' ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        ✓ Available
+                      </span>
+                    ) : prov.source === 'ml_gapfilled' ? (
+                      <span className="text-rose-400 flex items-center gap-1">
+                        ⚠ ML estimate
+                      </span>
+                    ) : (
+                      <span className="text-rose-400 flex items-center gap-1">
+                        ⚠ Spatiotemporal estimate
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </>
